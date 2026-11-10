@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>หมู่บ้านอัลกอริทึม — Algo Village</title>
+<link rel="icon" href="data:,">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2d2350; --paper:#ffffff;
+    --orange:#ff8a3d; --blue:#4aa3ff; --yellow:#ffd23f; --green:#5ec26a; --pink:#ff6f9c;
+    --chip:rgba(255,255,255,.92);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ width:100%; height:100%; overflow:hidden; }
+  body{ font-family:'Mali','Sriracha',system-ui,sans-serif; color:var(--ink); background:#bfe8ff; }
+  #scene{ position:fixed; inset:0; touch-action:none; }
+  #scene canvas{ display:block; }
+
+  /* ---------- ป้าย/chip ทั่วไป ---------- */
+  .hud{ position:fixed; z-index:10; pointer-events:none; }
+  .hud > *{ pointer-events:auto; }
+  .chip{
+    background:var(--chip); border-radius:999px; padding:.45rem 1rem;
+    box-shadow:0 4px 14px rgba(45,35,80,.14); font-weight:600; font-size:15px;
+    display:inline-flex; align-items:center; gap:.5rem; backdrop-filter:blur(6px);
+    border:2px solid rgba(255,255,255,.7);
+  }
+  #missionChip{ top:14px; left:14px; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+  #missionChip .row1{ display:flex; align-items:center; gap:.5rem; }
+  #missionChip .badge{
+    background:linear-gradient(135deg,var(--orange),#ff6f3d); color:#fff; border-radius:12px;
+    padding:2px 10px; font-size:13px; font-weight:700; box-shadow:0 2px 8px rgba(255,120,50,.4);
+  }
+  #missionChip .name{ font-size:17px; font-weight:700; }
+  #missionChip .concept{
+    font-size:12.5px; color:#6b5fa8; background:rgba(74,163,255,.14); border-radius:999px; padding:1px 10px; font-weight:600;
+  }
+  #topRight{ top:14px; right:14px; display:flex; gap:8px; }
+  .iconBtn{
+    width:46px; height:46px; border-radius:16px; border:none; cursor:pointer;
+    background:var(--chip); font-size:22px; box-shadow:0 4px 14px rgba(45,35,80,.14);
+    display:flex; align-items:center; justify-content:center; transition:transform .15s;
+    border:2px solid rgba(255,255,255,.7);
+  }
+  .iconBtn:hover{ transform:scale(1.08); }
+
+  /* ---------- แถบล่าง: คำสั่ง + ปุ่ม ---------- */
+  #bottomBar{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:10;
+    display:flex; flex-direction:column; align-items:center; gap:10px; width:min(94vw,720px);
+  }
+  #instruction{
+    background:var(--chip); border-radius:20px; padding:.7rem 1.2rem; font-size:15.5px; font-weight:500;
+    box-shadow:0 6px 20px rgba(45,35,80,.16); text-align:center; border:2px solid rgba(255,255,255,.7);
+    backdrop-filter:blur(6px); line-height:1.5;
+  }
+  #instruction b{ color:#e2620b; }
+  #actionRow{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .btn{
+    font-family:inherit; font-weight:700; font-size:15px; border:none; cursor:pointer;
+    padding:.6rem 1.3rem; border-radius:999px; color:#fff; box-shadow:0 5px 16px rgba(45,35,80,.2);
+    transition:transform .15s, filter .15s; display:inline-flex; align-items:center; gap:.45rem;
+  }
+  .btn:hover{ transform:translateY(-2px); filter:brightness(1.06); }
+  .btn:active{ transform:scale(.96); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
+  .btn-orange{ background:linear-gradient(135deg,#ff9a4d,var(--orange)); }
+  .btn-blue{ background:linear-gradient(135deg,#6db5ff,var(--blue)); }
+  .btn-green{ background:linear-gradient(135deg,#7bd083,var(--green)); }
+  .btn-pink{ background:linear-gradient(135deg,#ff8fb3,var(--pink)); }
+  .btn-ghost{ background:#fff; color:var(--ink); border:2px solid #e5e0f5; box-shadow:0 4px 12px rgba(45,35,80,.1); }
+
+  /* ---------- สถิติ ---------- */
+  #statRow{ position:fixed; top:84px; left:14px; z-index:10; display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+  #statRow .chip{ font-size:13.5px; padding:.32rem .85rem; }
+  .legendDot{ width:13px; height:13px; border-radius:4px; display:inline-block; border:1.5px solid rgba(0,0,0,.15); }
+
+  /* ---------- ฟองคำพูดหุ่นยนต์ ---------- */
+  #bubble{
+    position:fixed; z-index:9; max-width:280px; background:#fff; border-radius:18px;
+    padding:.65rem 1rem; font-size:14.5px; font-weight:500; line-height:1.45;
+    box-shadow:0 8px 24px rgba(45,35,80,.2); border:2.5px solid #ffd9bb;
+    opacity:0; transform:translate(-50%,-10px) scale(.9); transition:opacity .25s, transform .25s;
+    pointer-events:none;
+  }
+  #bubble.show{ opacity:1; transform:translate(-78%,-100%) scale(1); }
+  #bubble::after{
+    content:''; position:absolute; left:78%; bottom:-10px; transform:translateX(-50%);
+    border:10px solid transparent; border-top-color:#ffd9bb; border-bottom:none;
+  }
+
+  /* ---------- เมนูหลัก ---------- */
+  .overlay{
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:rgba(190,225,255,.55); backdrop-filter:blur(8px); padding:18px; overflow:auto;
+  }
+  .overlay.hidden{ display:none; }
+  #menuCard{ width:min(96vw,880px); }
+  .titleWrap{ text-align:center; margin-bottom:14px; }
+  .gameTitle{
+    font-size:clamp(26px,5vw,42px); font-weight:700; color:#fff; letter-spacing:.5px;
+    text-shadow:0 3px 0 rgba(226,98,11,.55), 0 8px 24px rgba(45,35,80,.3);
+  }
+  .subtitle{ font-size:clamp(13px,2.4vw,17px); color:#fff; font-weight:600; text-shadow:0 2px 8px rgba(45,35,80,.35); }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; }
+  .card{
+    background:#fff; border-radius:26px; padding:20px 18px 18px; box-shadow:0 14px 34px rgba(45,35,80,.22);
+    display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden;
+    transition:transform .18s; border:3px solid transparent;
+  }
+  .card:hover{ transform:translateY(-5px); }
+  .card.c1{ border-color:#ffd8b8; } .card.c1 .go{ background:linear-gradient(135deg,#ff9a4d,var(--orange)); }
+  .card.c2{ border-color:#cfe6ff; } .card.c2 .go{ background:linear-gradient(135deg,#6db5ff,var(--blue)); }
+  .card.c3{ border-color:#ffe9a8; } .card.c3 .go{ background:linear-gradient(135deg,#ffe066,#f5b93b); }
+  .card .emoji{ font-size:44px; line-height:1; }
+  .card h3{ font-size:19px; font-weight:700; }
+  .card .tag{ font-size:12.5px; font-weight:700; color:#7a6fc0; }
+  .card p{ font-size:13.5px; line-height:1.55; color:#4a4468; flex:1; }
+  .card .teach{ font-size:12.5px; color:#4a4468; background:#f4f1fd; border-radius:12px; padding:.4rem .7rem; line-height:1.6; }
+  .card .go{
+    margin-top:6px; border:none; cursor:pointer; color:#fff; font-family:inherit; font-weight:700;
+    font-size:16px; padding:.55rem; border-radius:999px; box-shadow:0 5px 14px rgba(45,35,80,.18);
+    transition:transform .15s, filter .15s;
+  }
+  .card .go:hover{ transform:translateY(-2px); filter:brightness(1.07); }
+  #teacherNote{
+    margin-top:14px; background:rgba(255,255,255,.85); border-radius:18px; padding:.6rem 1rem;
+    font-size:13px; line-height:1.65; color:#4a4468;
+  }
+  #teacherNote summary{ cursor:pointer; font-weight:700; color:var(--ink); font-size:14px; }
+  .credit{ text-align:center; margin-top:10px; font-size:12px; color:rgba(45,35,80,.65); font-weight:600; }
+
+  /* ---------- ผลลัพธ์ชนะ ---------- */
+  #winCard{
+    background:#fff; border-radius:30px; padding:30px 34px 26px; text-align:center;
+    box-shadow:0 20px 60px rgba(45,35,80,.3); width:min(92vw,430px);
+    animation:popIn .45s cubic-bezier(.2,1.6,.4,1);
+  }
+  @keyframes popIn{ from{ transform:scale(.5); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  #winCard .big{ font-size:56px; }
+  #winCard h2{ font-size:26px; margin:.2rem 0 .3rem; }
+  #winStars{ font-size:42px; letter-spacing:6px; margin:.2rem 0 .4rem; }
+  #winStars .off{ opacity:.22; filter:grayscale(1); }
+  #winStats{ font-size:15px; color:#4a4468; line-height:1.7; background:#f6f3fc; border-radius:14px; padding:.6rem .8rem; margin-bottom:1rem; }
+  #winCard .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed; top:78px; left:50%; transform:translateX(-50%) translateY(-8px); z-index:60;
+    background:#2d2350; color:#fff; border-radius:999px; padding:.5rem 1.2rem; font-size:14.5px; font-weight:600;
+    box-shadow:0 8px 24px rgba(45,35,80,.35); opacity:0; transition:.3s; pointer-events:none; max-width:88vw; text-align:center;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (max-width:640px){
+    #missionChip .name{ font-size:14.5px; } #instruction{ font-size:13.5px; padding:.55rem .9rem; }
+    .btn{ font-size:13.5px; padding:.5rem 1rem; } #statRow{ top:76px; } #statRow .chip{ font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<!-- HUD ระหว่างเล่น -->
+<div class="hud" id="missionChip" style="display:none">
+  <div class="row1">
+    <span class="badge" id="mBadge">ภารกิจ 1</span>
+    <span class="name" id="mName"></span>
+  </div>
+  <span class="concept" id="mConcept"></span>
+</div>
+
+<div class="hud" id="topRight" style="display:none">
+  <button class="iconBtn" id="btnMute" title="เปิด/ปิดเสียง">🔊</button>
+  <button class="iconBtn" id="btnHome" title="กลับเมนู">🏠</button>
+</div>
+
+<div id="statRow"></div>
+<div id="bottomBar" style="display:none">
+  <div id="instruction"></div>
+  <div id="actionRow"></div>
+</div>
+
+<div id="bubble"></div>
+<div id="toast"></div>
+
+<!-- เมนูหลัก -->
+<div class="overlay" id="menu">
+  <div id="menuCard">
+    <div class="titleWrap">
+      <div class="gameTitle">🏡 หมู่บ้านอัลกอริทึม</div>
+      <div class="subtitle">Algo Village — เกม 3 มิติสนุก ๆ สอน Algorithm &amp; Data Structure สำหรับเด็ก</div>
+    </div>
+    <div class="cards" id="menuCards"></div>
+    <details id="teacherNote">
+      <summary>📖 สำหรับครูและผู้ปกครอง — แต่ละภารกิจสอนอะไร?</summary>
+      <p style="margin-top:.5rem">
+        <b>ภารกิจ 1 · เรียงถัง</b> — เรียนรู้ว่า "อัลกอริทึม" คือขั้นตอนแก้ปัญหา เด็กได้ลองแลกตำแหน่ง (swap) เองเพื่อเรียงข้อมูล
+        แล้วกดปุ่มให้หุ่นยนต์สาธิต <b>Bubble Sort</b> ทีละขั้น เพื่อเปรียบเทียบว่าคอมพิวเตอร์ทำซ้ำ ๆ แบบเดียวกันได้อย่างไร<br>
+        <b>ภารกิจ 2 · หอคอยฮานอย</b> — แท่งเสาแต่ละต้นคือโครงสร้างข้อมูลแบบ <b>Stack</b> (ยกของได้เฉพาะใบบนสุด = LIFO)
+        และปุ่ม "ดูเฉลย" แสดงวิธีคิดแบบ <b>Recursion</b> — แก้ปัญหาใหญ่จากปัญหาเล็กที่ซ้ำรูปแบบเดิม จำนวนขั้นน้อยสุดคือ 2ⁿ−1<br>
+        <b>ภารกิจ 3 · ตามหาเส้นทาง</b> — สาธิต <b>Breadth-First Search (BFS)</b> ค้นหาทีละวง (คลื่นสีส้ม = ของที่อยู่ใน Queue)
+        ซึ่งการการันตีว่าเจอเส้นทางสั้นที่สุด — ลองสังเกตว่าบางครั้งต้องสำรวจหลายช่องกว่าจะถึงเป้าหมาย
+      </p>
+    </details>
+    <div class="credit">สร้างด้วย Three.js + 3D assets จาก polyfork.dev</div>
+  </div>
+</div>
+
+<!-- ผลลัพธ์ชนะ -->
+<div class="overlay hidden" id="win">
+  <div id="winCard">
+    <div class="big">🎉</div>
+    <h2 id="winTitle">ภารกิจสำเร็จ!</h2>
+    <div id="winStars"></div>
+    <div id="winStats"></div>
+    <div class="row">
+      <button class="btn btn-green" id="winAgain">🔄 เล่นอีกครั้ง</button>
+      <button class="btn btn-blue" id="winNext">➡️ ภารกิจถัดไป</button>
+      <button class="btn btn-ghost" id="winMenu">🏠 เมนู</button>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createAsset as createRobotAsset } from 'https://polyfork.dev/cdn/service-robot-93f82e.mjs';
+import { createAsset as createBarrelAsset } from 'https://polyfork.dev/cdn/wooden-barrel-6afab0.mjs';
+import { createAsset as createCrateAsset } from 'https://polyfork.dev/cdn/supply-crate-57aa8d.mjs';
+import { createAsset as createCoinAsset } from 'https://polyfork.dev/cdn/gold-coin-29afc1.mjs';
+import { createAsset as createTreeAsset } from 'https://polyfork.dev/cdn/lineside-tree-97e02a.mjs';
+
+/* =========================================================================
+   หมู่บ้านอัลกอริทึม (Algo Village)
+   เกม 3 มิติสอนเด็ดเรื่อง Algorithm & Data Structure
+   ภารกิจ 1: Sorting (Bubble Sort)   ภารกิจ 2: Stack/Recursion (Tower of Hanoi)
+   ภารกิจ 3: BFS + Queue (shortest path)
+   ========================================================================= */
+
+const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const rand = (a,b) => a + Math.random()*(b-a);
+const pickFrom = arr => arr[Math.floor(Math.random()*arr.length)];
+const clamp01 = k => Math.min(1, Math.max(0, k));
+const easeInOut = k => k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2;
+const easeOutBack = k => { const c=1.70158; return 1 + (c+1)*Math.pow(k-1,3) + c*Math.pow(k-1,2); };
+
+/* ---------------- เสียงเอฟเฟกต์ (WebAudio ง่าย ๆ) ---------------- */
+const AudioFX = {
+  ctx:null, muted:false,
+  ensure(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+            if(this.ctx && this.ctx.state==='suspended') this.ctx.resume(); },
+  tone(freq=600, dur=.09, type='sine', vol=.16, delay=0){
+    if(this.muted || !this.ctx) return;
+    const t0 = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0+.012);
+    g.gain.exponentialRampToValueAtTime(.0001, t0+dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t0); o.stop(t0+dur+.05);
+  },
+  click(){ this.tone(720,.07,'triangle',.14); },
+  select(){ this.tone(880,.08,'sine',.14); this.tone(1320,.09,'sine',.09,.05); },
+  swap(){ this.tone(520,.08,'triangle',.13); this.tone(780,.1,'triangle',.11,.07); },
+  place(){ this.tone(300,.09,'sine',.18); },
+  error(){ this.tone(190,.16,'square',.08); this.tone(150,.18,'square',.08,.09); },
+  step(){ this.tone(500+Math.random()*80,.045,'sine',.05); },
+  coin(){ this.tone(1046,.08,'sine',.15); this.tone(1568,.14,'sine',.13,.07); },
+  win(){ [523,659,784,1046].forEach((f,i)=>this.tone(f,.16,'triangle',.15,i*.12)); },
+};
+window.addEventListener('pointerdown', ()=>AudioFX.ensure(), {once:false});
+
+/* ---------------- ระบบ Tween เล็ก ๆ ---------------- */
+const tweens = new Set();
+function tween({dur=.5, delay=0, ease=easeInOut, update, done}){
+  return new Promise(res=>{
+    tweens.add({ t:-(delay), dur, ease, update, done, res });
+  });
+}
+function updateTweens(dt){
+  for(const tw of [...tweens]){
+    tw.t += dt;
+    if(tw.t < 0) continue;
+    const raw = clamp01(tw.t / tw.dur);
+    tw.update && tw.update(tw.ease(raw), raw);
+    if(raw >= 1){ tweens.delete(tw); tw.done && tw.done(); tw.res(); }
+  }
+}
+function arcMove(obj, to, {dur=.5, height=1.1}={}){
+  const from = obj.position.clone();
+  return tween({ dur, update:e=>{
+    obj.position.lerpVectors(from, to, e);
+    obj.position.y = THREE.MathUtils.lerp(from.y, to.y, e) + Math.sin(e*Math.PI)*height;
+  }});
+}
+function shake(obj, {times=4, amp=.09, dur=.42}={}){
+  const base = obj.position.x;
+  return tween({ dur, ease:k=>k, update:e=>{
+    obj.position.x = base + Math.sin(e*Math.PI*times)*amp*(1-e);
+  }});
+}
+function popScale(obj, {from=0, to=1, dur=.5}={}){
+  return tween({ dur, ease:easeOutBack, update:e=>{
+    obj.scale.setScalar(THREE.MathUtils.lerp(from,to,e));
+  }});
+}
+
+/* ---------------- ฉาก Three.js พื้นฐาน ---------------- */
+const container = $('scene');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xcfeaff, 26, 60);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 200);
+camera.position.set(10, 8, 14);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = .08;
+controls.maxPolarAngle = Math.PI * .48;
+controls.minDistance = 4; controls.maxDistance = 40;
+controls.target.set(0, 1, 0);
+
+/* ท้องฟ้าไล่สี + เมฆ */
+{
+  const cnv = document.createElement('canvas'); cnv.width = 4; cnv.height = 256;
+  const g = cnv.getContext('2d');
+  const grad = g.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0,'#8fd0ff'); grad.addColorStop(.55,'#c8e9ff'); grad.addColorStop(1,'#f2fbff');
+  g.fillStyle = grad; g.fillRect(0,0,4,256);
+  const tex = new THREE.CanvasTexture(cnv); tex.colorSpace = THREE.SRGBColorSpace;
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(90, 24, 16),
+    new THREE.MeshBasicMaterial({ map:tex, side:THREE.BackSide, fog:false })
+  );
+  scene.add(sky);
+}
+const clouds = new THREE.Group(); scene.add(clouds);
+{
+  const mat = new THREE.MeshBasicMaterial({ color:0xffffff });
+  for(let i=0;i<6;i++){
+    const c = new THREE.Group();
+    const n = 3+Math.floor(Math.random()*3);
+    for(let j=0;j<n;j++){
+      const s = new THREE.Mesh(new THREE.SphereGeometry(rand(.9,1.7),10,8), mat);
+      s.position.set(j*1.3-n*.6, rand(-.2,.25), rand(-.4,.4)); s.scale.y = .62; c.add(s);
+    }
+    c.position.set(rand(-24,24), rand(9,14), rand(-24,20));
+    c.userData.speed = rand(.15,.5);
+    clouds.add(c);
+  }
+}
+
+/* แสง */
+scene.add(new THREE.HemisphereLight(0xdfeeff, 0x9cc27a, .9));
+const sun = new THREE.DirectionalLight(0xfff2dd, 1.35);
+sun.position.set(12, 18, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+sun.shadow.camera.top = 20;  sun.shadow.camera.bottom = -20;
+sun.shadow.camera.far = 60;  sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+/* พื้นเกาะ */
+{
+  const ground = new THREE.Mesh(
+    new THREE.CylinderGeometry(26, 27.5, 1.2, 48),
+    new THREE.MeshStandardMaterial({ color:0x8fce6e })
+  );
+  ground.position.y = -.6; ground.receiveShadow = true; scene.add(ground);
+  const beach = new THREE.Mesh(
+    new THREE.CylinderGeometry(27.5, 28.6, .7, 48),
+    new THREE.MeshStandardMaterial({ color:0xf1ddA6 })
+  );
+  beach.position.y = -1.35; scene.add(beach);
+}
+
+/* ---------------- Asset helper ---------------- */
+function enableShadow(g){ g.traverse(m=>{ if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } }); }
+function fitToHeight(g, h){
+  const box = new THREE.Box3().setFromObject(g);
+  const s = h / Math.max(.001, box.max.y - box.min.y);
+  g.scale.setScalar(s); return s;
+}
+function worldSize(g){
+  const box = new THREE.Box3().setFromObject(g);
+  const size = new THREE.Vector3(); box.getSize(size); return size;
+}
+function makeTextSprite(text, {fg='#2d2350', bg='#ffffff', size=110, world=.72, border='#ffd23f'}={}){
+  const pad = 28, cnv = document.createElement('canvas');
+  const ctx = cnv.getContext('2d');
+  ctx.font = `700 ${size}px Mali, sans-serif`;
+  const w = ctx.measureText(String(text)).width;
+  cnv.width = Math.ceil(w + pad*2); cnv.height = size + pad*1.7;
+  const c2 = cnv.getContext('2d');
+  // พื้นป้ายมุมมน
+  const r = 34;
+  c2.fillStyle = bg;
+  c2.beginPath();
+  c2.moveTo(r,4); c2.arcTo(cnv.width-4,4,cnv.width-4,cnv.height-4,r);
+  c2.arcTo(cnv.width-4,cnv.height-4,4,cnv.height-4,r);
+  c2.arcTo(4,cnv.height-4,4,4,r); c2.arcTo(4,4,cnv.width-4,4,r); c2.closePath(); c2.fill();
+  c2.lineWidth = 10; c2.strokeStyle = border; c2.stroke();
+  c2.font = `700 ${size}px Mali, sans-serif`;
+  c2.fillStyle = fg; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+  c2.fillText(String(text), cnv.width/2, cnv.height/2 + 6);
+  const tex = new THREE.CanvasTexture(cnv); tex.colorSpace = THREE.SRGBColorSpace;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, depthTest:false }));
+  spr.renderOrder = 20;
+  const ratio = cnv.height / cnv.width;
+  spr.scale.set(world, world*ratio, 1);
+  return spr;
+}
+
+/* ---------------- ตกแต่งหมู่บ้าน (คงอยู่ทุกภารกิจ) ---------------- */
+const deco = new THREE.Group(); scene.add(deco);
+async function buildVillage(){
+  const spots = [];
+  for(let i=0;i<26;i++){
+    const a = rand(0, Math.PI*2), r = rand(13.5, 22.5);
+    spots.push([Math.cos(a)*r, Math.sin(a)*r]);
+  }
+  for(const [x,z] of spots){
+    const t = createTreeAsset({
+      colorway: pickFrom(['summer','spring','autumn']),
+      species: Math.random()<.4 ? 'conifer' : 'ash',
+      size: rand(.8,1.2),
+    });
+    t.position.set(x, 0, z);
+    t.rotation.y = rand(0, Math.PI*2);
+    enableShadow(t); deco.add(t);
+  }
+  // กล่อง + ถังประดับ
+  const crate1 = createCrateAsset({ colorway:'coalition-blue' });
+  crate1.position.set(-15, 0, 6); crate1.rotation.y = .4; enableShadow(crate1); deco.add(crate1);
+  const crate2 = createCrateAsset({ colorway:'supply-tan', height:.7 });
+  crate2.position.set(-15, .62, 6.3); crate2.rotation.y = -.2; enableShadow(crate2); deco.add(crate2);
+  const bar = createBarrelAsset({ contents:'coins', colorway:'brass-bound' });
+  bar.position.set(-14.2, 0, 7.4); enableShadow(bar); deco.add(bar);
+}
+buildVillage();
+
+/* ---------------- หุ่นยนต์ไกด์ "บอทที้" ---------------- */
+const robot = createRobotAsset({ age:'kid', colorway:'service-white', visor:'#5ad8d5' });
+fitToHeight(robot, 1.45);
+enableShadow(robot);
+robot.position.set(6.5, 0, 6);
+robot.rotation.y = -2.5;
+scene.add(robot);
+let robotBaseY = 0, robotHop = 0;
+
+const bubble = $('bubble');
+let bubbleUntil = 0;
+function speak(text, ms=4200){
+  bubble.innerHTML = text;
+  bubble.classList.add('show');
+  bubbleUntil = performance.now() + ms;
+}
+function updateBubble(){
+  if(performance.now() > bubbleUntil){ bubble.classList.remove('show'); return; }
+  const v = robot.position.clone(); v.y += 2.45;
+  v.project(camera);
+  bubble.style.left = ((v.x*.5+.5)*innerWidth) + 'px';
+  bubble.style.top  = ((-v.y*.5+.5)*innerHeight) + 'px';
+}
+
+/* ---------------- toast ---------------- */
+let toastTimer = null;
+function toast(msg, ms=2200){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+/* ---------------- คอนเฟตติ ---------------- */
+function confetti(){
+  const colors = [0xff8a3d,0x4aa3ff,0xffd23f,0x5ec26a,0xff6f9c];
+  const g = new THREE.Group(); scene.add(g);
+  const parts = [];
+  for(let i=0;i<130;i++){
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(.14,.2),
+      new THREE.MeshBasicMaterial({ color:pickFrom(colors), side:THREE.DoubleSide })
+    );
+    m.position.set(rand(-7,7), rand(6,12), rand(-5,5));
+    m.rotation.set(rand(0,6), rand(0,6), rand(0,6));
+    m.userData = { vy:rand(2.2,3.6), wx:rand(2,6), wz:rand(2,6), drift:rand(-.5,.5) };
+    g.add(m); parts.push(m);
+  }
+  tween({ dur:3.2, ease:k=>k, update:e=>{
+    const dt = 1/60;
+    for(const p of parts){
+      p.position.y -= p.userData.vy*dt;
+      p.position.x += p.userData.drift*dt;
+      p.rotation.x += p.userData.wx*dt; p.rotation.z += p.userData.wz*dt;
+    }
+  }, done:()=>scene.remove(g) });
+}
+
+/* ---------------- วงแหวนเลือกของ ---------------- */
+const selectRing = new THREE.Mesh(
+  new THREE.TorusGeometry(.72,.07,10,40),
+  new THREE.MeshBasicMaterial({ color:0xffd23f })
+);
+selectRing.rotation.x = Math.PI/2; selectRing.visible = false;
+scene.add(selectRing);
+function ringAt(obj, r=1){
+  selectRing.visible = true;
+  selectRing.userData.follow = obj;
+  selectRing.userData.r = r;
+}
+function ringOff(){ selectRing.visible = false; selectRing.userData.follow = null; }
+
+/* ---------------- การคลิกวัตถุ (raycast) ---------------- */
+const raycaster = new THREE.Raycaster();
+let pickables = [];
+let onPickHandler = null;
+let onPickMiss = null; // คลิกโดนพื้นที่ว่าง (ไม่โดนวัตถุไหน)
+let downX=0, downY=0;
+renderer.domElement.addEventListener('pointerdown', e=>{ downX=e.clientX; downY=e.clientY; });
+renderer.domElement.addEventListener('pointerup', e=>{
+  if(Math.hypot(e.clientX-downX, e.clientY-downY) > 7) return;
+  const ndc = new THREE.Vector2((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(pickables, true);
+  for(const h of hits){
+    let o = h.object;
+    while(o){ if(o.userData.pick) return onPickHandler && onPickHandler(o.userData.pick); o = o.parent; }
+  }
+  if(onPickMiss) onPickMiss();
+});
+
+/* ---------------- Game manager ---------------- */
+const gameRoot = new THREE.Group(); scene.add(gameRoot);
+let currentGame = null;
+let busy = false;
+
+const MISSIONS = [
+  { id:'sort', n:1, emoji:'🛢️', name:'เรียงถังให้เป็นระเบียบ', concept:'Sorting · Bubble Sort',
+    desc:'สลับตำแหน่งถัง 2 ใบเพื่อเรียงจากเล็กไปใหญ่ (1→5) ให้สลับน้อยครั้งที่สุด! แล้วลองดูบอทที้สาธิตวิธีของ Bubble Sort',
+    teaches:'การเปรียบเทียบ (compare) · การสลับ (swap) · อัลกอริทึมคือขั้นตอนที่ชัดเจน' },
+  { id:'hanoi', n:2, emoji:'🗼', name:'หอคอยฮานอย', concept:'Stack · Recursion',
+    desc:'ย้ายหอคอยจากเสา A ไปเสา C ทั้งหมด — ยกได้เฉพาะใบบนสุด และใบใหญ่วางบนใบเล็กไม่ได้! (น้อยที่สุด 15 หน)',
+    teaches:'Stack (LIFO) · Recursion ปัญหาใหญ่ = ปัญหาเล็กซ้ำ ๆ · ขั้นน้อยสุด 2ⁿ−1' },
+  { id:'bfs', n:3, emoji:'🧭', name:'ตามหาเส้นทางเก็บเหรียญ', concept:'BFS · Queue',
+    desc:'คลิกช่องที่ต้องการ แล้วดูบอทที้ค้นหาเส้นทางแบบ BFS — คลื่นสีส้มคือช่องที่กำลังรอใน Queue เก็บให้ครบ 3 เหรียญ!',
+    teaches:'Queue (FIFO) · Breadth-First Search · เส้นทางสั้นที่สุด' },
+];
+
+function clearGame(){
+  tweens.clear();
+  gameRoot.clear();
+  pickables = []; onPickHandler = null; onPickMiss = null; busy = false;
+  ringOff();
+  $('statRow').innerHTML = '';
+  $('actionRow').innerHTML = '';
+}
+function setStats(html){ $('statRow').innerHTML = html; }
+function setActions(defs){
+  const row = $('actionRow'); row.innerHTML = '';
+  for(const d of defs){
+    const b = document.createElement('button');
+    b.className = 'btn ' + d.cls; b.innerHTML = d.label;
+    b.onclick = ()=>{ AudioFX.click(); d.fn(); };
+    if(d.id) b.id = d.id;
+    row.appendChild(b);
+  }
+}
+function setInstruction(html){ $('instruction').innerHTML = html; }
+function camTo(pos, target, dur=1.2){
+  const p0 = camera.position.clone(), t0 = controls.target.clone();
+  const p1 = new THREE.Vector3(...pos), t1 = new THREE.Vector3(...target);
+  tween({ dur, update:e=>{
+    camera.position.lerpVectors(p0, p1, e);
+    controls.target.lerpVectors(t0, t1, e);
+  }});
+}
+
+function startMission(i){
+  $('menu').classList.add('hidden');
+  $('win').classList.add('hidden');
+  clearGame();
+  const m = MISSIONS[i];
+  $('missionChip').style.display = 'flex';
+  $('topRight').style.display = 'flex';
+  $('bottomBar').style.display = 'flex';
+  $('mBadge').textContent = 'ภารกิจ ' + m.n;
+  $('mName').textContent = m.emoji + ' ' + m.name;
+  $('mConcept').textContent = m.concept;
+  controls.autoRotate = false;
+  if(m.id === 'sort'){ currentGame = new SortGame(); }
+  else if(m.id === 'hanoi'){ currentGame = new HanoiGame(); }
+  else { currentGame = new BfsGame(); }
+}
+function showMenu(){
+  clearGame(); currentGame = null;
+  $('menu').classList.remove('hidden');
+  $('win').classList.add('hidden');
+  $('missionChip').style.display = 'none';
+  $('topRight').style.display = 'none';
+  $('bottomBar').style.display = 'none';
+  controls.autoRotate = true; controls.autoRotateSpeed = .6;
+  camTo([14,9,16],[0,1,0],1.2);
+}
+
+/* ปุ่มระบบ */
+$('btnHome').onclick = ()=>{ AudioFX.click(); showMenu(); };
+$('btnMute').onclick = ()=>{ AudioFX.muted = !AudioFX.muted; $('btnMute').textContent = AudioFX.muted?'🔇':'🔊'; };
+$('winMenu').onclick = ()=>{ AudioFX.click(); showMenu(); };
+$('winAgain').onclick = ()=>{ AudioFX.click(); startMission(MISSIONS.findIndex(m=>m===currentGame.mission)); };
+$('winNext').onclick = ()=>{
+  AudioFX.click();
+  const i = MISSIONS.findIndex(m=>m===currentGame.mission);
+  startMission((i+1) % MISSIONS.length);
+};
+function showWin(stars, statsHtml, robotMsg){
+  AudioFX.win(); confetti();
+  speak(robotMsg, 6000);
+  const starsHtml = [1,2,3].map(i=>`<span class="${i<=stars?'':'off'}">⭐</span>`).join('');
+  $('winStars').innerHTML = starsHtml;
+  $('winStats').innerHTML = statsHtml;
+  $('win').classList.remove('hidden');
+}
+
+/* สร้างการ์ดในเมนู */
+{
+  const cards = $('menuCards');
+  const cls = ['c1','c2','c3'];
+  MISSIONS.forEach((m,i)=>{
+    const c = document.createElement('div');
+    c.className = 'card ' + cls[i];
+    c.innerHTML = `
+      <div class="emoji">${m.emoji}</div>
+      <h3>${m.name}</h3>
+      <div class="tag">เรียนอะไร: ${m.concept}</div>
+      <p>${m.desc}</p>
+      <div class="teach">💡 ${m.teaches}</div>
+      <button class="go">เริ่มภารกิจ ${m.n} ▶</button>`;
+    c.querySelector('.go').onclick = ()=>{ AudioFX.click(); startMission(i); };
+    cards.appendChild(c);
+  });
+}
+
+/* =========================================================================
+   ภารกิจ 1 — เรียงถัง (Sorting / Bubble Sort)
+   ========================================================================= */
+class SortGame {
+  constructor(){
+    this.mission = MISSIONS[0];
+    this.values = [1,2,3,4,5];
+    // สลับสุ่มให้ไม่เรียงอยู่แล้ว
+    do{ for(let i=this.values.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [this.values[i],this.values[j]]=[this.values[j],this.values[i]]; } }
+    while(this.isSorted());
+    this.swaps = 0;
+    this.selected = null;
+    this.busyAnim = false;
+    this.slotsX = i => -4.8 + i*2.4;
+
+    this.build();
+    camTo([0, 6.5, 11.5], [0, .9, 0]);
+    robot.position.set(0, 0, -6.5); robot.rotation.y = 0;
+    speak('สวัสดี! ฉันคือบอทที้ 🤖 ช่วยเรียงถังพวกนี้จาก <b>เล็กไปใหญ่ (1→5)</b> หน่อยสิ แค่คลิกถังสองใบเพื่อสลับที่!', 6500);
+    setInstruction('คลิกถัง <b>2 ใบ</b> เพื่อสลับตำแหน่ง — เรียงให้เป็น 1→5 จากซ้ายไปขวาให้สลับน้อยที่สุด!');
+    setStats(`
+      <span class="chip">🔄 สลับแล้ว: <b id="sgSwap">0</b> ครั้ง</span>
+      <span class="chip">🏆 สลับน้อยสุดที่ทำได้: <b>${this.minSwaps()}</b> ครั้ง</span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(0) },
+      { label:'🤖 ดู Bubble Sort', cls:'btn-orange', id:'sgDemo', fn:()=>this.demo() },
+    ]);
+    onPickHandler = p => this.onClick(p);
+    onPickMiss = () => { if(!busy && !this.busyAnim) this.deselect(); };
+  }
+  build(){
+    this.wrappers = [];
+    for(let i=0;i<5;i++){
+      const w = new THREE.Group();
+      w.position.set(this.slotsX(i), 0, 0);
+      const v = this.values[i];
+      const b = createBarrelAsset({ contents:'closed', colorway:'oak-iron' });
+      enableShadow(b);
+      // ขนาดตามค่า (1..5)
+      const s = .5 + v*.15;
+      b.scale.setScalar(s);
+      w.add(b);
+      // hitbox กระบอกโปร่งใส กันรังสีลอดข้ามขอบถัง (เช่นเดียวกับภารกิจฮานอย)
+      const bs = worldSize(b);
+      const hit = new THREE.Mesh(
+        new THREE.CylinderGeometry(Math.max(bs.x, bs.z)/2, Math.max(bs.x, bs.z)/2, bs.y + .04, 14),
+        new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
+      );
+      hit.position.y = bs.y/2 + .01;
+      w.add(hit);
+      const label = makeTextSprite(String(v), { world:.62 });
+      label.position.y = 1.15 + v*.18;
+      w.add(label);
+      w.userData.pick = { type:'barrel', idx:i };
+      gameRoot.add(w);
+      this.wrappers.push(w);
+      pickables.push(w);
+    }
+    // เส้นบอกเป้าหมาย "เล็ก → ใหญ่"
+    const arrow = makeTextSprite('เล็ก ⟶ ใหญ่', { world:1.9, fg:'#7a5b13', bg:'#fff7d6', border:'#ffd23f' });
+    arrow.position.set(0, .32, 2.6);
+    gameRoot.add(arrow);
+  }
+  isSorted(){ return this.values.every((v,i)=>v===i+1); }
+  minSwaps(){
+    // จำนวนสลับน้อยสุด = n - จำนวนวงจร
+    const n = this.values.length, seen = new Array(n).fill(false);
+    let cycles = 0;
+    for(let i=0;i<n;i++){
+      if(seen[i]) continue;
+      cycles++; let j=i;
+      while(!seen[j]){ seen[j]=true; j=this.values[j]-1; }
+    }
+    return n - cycles;
+  }
+  refreshStats(){ $('sgSwap').textContent = this.swaps; }
+  async deselect(){
+    if(this.selected===null) return;
+    const s = this.selected; this.selected = null; ringOff();
+    await tween({ dur:.2, update:e=>{ this.wrappers[s].position.y = .35*(1-e); } });
+  }
+  async onClick(pick){
+    if(busy || this.busyAnim) return;
+    if(pick.type!=='barrel') return;
+    const i = pick.idx;
+    if(this.selected===null){
+      this.selected = i; AudioFX.select();
+      ringAt(this.wrappers[i], .62 + this.values[i]*.1);
+      await tween({ dur:.25, update:e=>{ this.wrappers[i].position.y = e*.35; } });
+    } else if(this.selected===i){
+      await this.deselect();
+    } else {
+      const a = this.selected, b = i; this.selected = null; ringOff();
+      await this.swap(a,b);
+    }
+  }
+  async swap(a,b,{height=1.1}={}){
+    this.busyAnim = true; AudioFX.swap();
+    const wa = this.wrappers[a], wb = this.wrappers[b];
+    const pa = new THREE.Vector3(this.slotsX(b), 0, 0), pb = new THREE.Vector3(this.slotsX(a), 0, 0);
+    await Promise.all([
+      arcMove(wa, pa, { height }),
+      arcMove(wb, pb, { height:height*.55 }),
+    ]);
+    [this.wrappers[a], this.wrappers[b]] = [this.wrappers[b], this.wrappers[a]];
+    [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
+    // อัปเดต idx ใน userData
+    this.wrappers.forEach((w,i)=>w.userData.pick.idx = i);
+    this.wrappers.forEach(w=>w.position.y = 0);
+    this.swaps++; this.refreshStats(); AudioFX.place();
+    this.busyAnim = false;
+    if(this.isSorted()) this.winGame();
+  }
+  winGame(){
+    const min = this.minSwaps();
+    const stars = this.swaps<=min?3 : this.swaps<=min+3?2 : 1;
+    busy = true;
+    showWin(stars,
+      `ใช้การสลับ <b>${this.swaps}</b> ครั้ง (น้อยที่สุดคือ <b>${min}</b> ครั้ง)<br>
+       Bubble Sort ใช้การเทียบคู่ซ้าย→ขวาซ้ำ ๆ จนเรียง — ลองกดปุ่มดูสาธิตได้เลย!`,
+      'เก่งมาก! คุณเพิ่งแก้ปัญหา "การเรียงลำดับ" (Sorting) ด้วยอัลกอริทึมของตัวเอง 🎉');
+  }
+  /* สาธิต bubble sort ทีละขั้น */
+  async demo(){
+    if(busy || this.busyAnim) return;
+    busy = true; ringOff(); this.selected = null;
+    $('sgDemo').disabled = true;
+    // กลับไปตามลำดับปัจจุบัน แล้วเดิน bubble sort
+    let compares = 0, swapsDone = 0;
+    const arr = [...this.values];
+    speak('ดูนะ! Bubble Sort จะเทียบถังคู่ข้าง ๆ กันทีละคู่ ถ้าเลขหน้ามากกว่าเลขหลังก็สลับ', 5500);
+    await wait(900);
+    for(let end=arr.length-1; end>0; end--){
+      for(let i=0;i<end;i++){
+        // เน้นคู่ที่กำลังเทียบ
+        compares++;
+        const wa = this.wrappers[i], wb = this.wrappers[i+1];
+        ringAt(wa, .66); AudioFX.tone(660,.06,'sine',.08);
+        await Promise.all([
+          tween({dur:.22, update:e=>{ wa.position.y = e*.3; }}),
+          tween({dur:.22, update:e=>{ wb.position.y = e*.3; }}),
+        ]);
+        if(arr[i] > arr[i+1]){
+          speak(`เทียบ ${arr[i]} กับ ${arr[i+1]} → ${arr[i]} มากกว่า สลับ!`, 1100);
+          await wait(320);
+          await Promise.all([tween({dur:.2, update:e=>{ wa.position.y=.3*(1-e); }}), tween({dur:.2, update:e=>{ wb.position.y=.3*(1-e); }})]);
+          await this.swap(i, i+1, {height:.9});
+          swapsDone++;
+          [arr[i], arr[i+1]] = [arr[i+1], arr[i]];
+        }else{
+          speak(`เทียบ ${arr[i]} กับ ${arr[i+1]} → เรียงถูกแล้ว ไม่ต้องสลับ`, 1100);
+          await Promise.all([
+            tween({dur:.2, update:e=>{ wa.position.y=.3*(1-e); }}),
+            tween({dur:.2, update:e=>{ wb.position.y=.3*(1-e); }}),
+          ]);
+          await wait(380);
+        }
+      }
+      ringOff();
+      toast(`รอบจบแล้ว — ถังใบที่ใหญ่ที่สุดในรอบ "ลอย" ไปอยู่ปลายทางแล้ว 🫧`);
+      await wait(500);
+    }
+    ringOff();
+    speak(`จบแล้ว! Bubble Sort ใช้การเทียบ ${compares} ครั้ง และสลับ ${swapsDone} ครั้ง`, 5000);
+    busy = false;
+    $('sgDemo').disabled = false;
+  }
+}
+
+/* =========================================================================
+   ภารกิจ 2 — หอคอยฮานอย (Stack / Recursion)
+   ========================================================================= */
+class HanoiGame {
+  constructor(){
+    this.mission = MISSIONS[1];
+    this.N = 4;
+    this.moves = 0;
+    this.selected = null;
+    this.busyAnim = false;
+    this.pegX = [-3.6, 0, 3.6];
+    this.build();
+    camTo([0, 7.5, 12.5], [0, 1.1, 0]);
+    robot.position.set(6.8, 0, 5.5); robot.rotation.y = -2.3;
+    speak('ภารกิจนี้ยากขึ้นนะ! ย้ายหอคอยทั้งหมดจากเสา <b>A</b> ไปเสา <b>C</b> — ยกได้เฉพาะ<b>ใบบนสุด</b> และใบใหญ่วางบนใบเล็กไม่ได้!', 7000);
+    setInstruction('คลิกถัง (ใบบนสุดของแต่ละเสา) แล้วคลิกเสาปลายทาง — เป้าหมาย: ย้ายทั้งหมดไป <b>เสา C</b> ใน <b>15 ก้าว</b>');
+    setStats(`
+      <span class="chip">👟 ย้ายแล้ว: <b id="hgMove">0</b> ก้าว</span>
+      <span class="chip">🏆 น้อยที่สุด: <b>${Math.pow(2,this.N)-1}</b> ก้าว</span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(1) },
+      { label:'🧠 ดูเฉลย (Recursion)', cls:'btn-blue', id:'hgDemo', fn:()=>this.demo() },
+    ]);
+    onPickHandler = p => this.onClick(p);
+    onPickMiss = () => { if(!busy && !this.busyAnim) this.deselect(); };
+  }
+  build(){
+    // เสา 3 ต้น
+    const poleMat = new THREE.MeshStandardMaterial({ color:0x8a5a33, roughness:.6 });
+    const baseMat = new THREE.MeshStandardMaterial({ color:0xa9825a, roughness:.7 });
+    this.pegLabels = ['A','B','C'];
+    this.pegs = [[],[],[]]; // stack ของ disc index (0=เล็กสุด)
+    for(let p=0;p<3;p++){
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.6,.3,2.4), baseMat);
+      base.position.set(this.pegX[p], .15, 0);
+      base.castShadow = base.receiveShadow = true; gameRoot.add(base);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,3.3,12), poleMat);
+      pole.position.set(this.pegX[p], .3 + 1.65, 0);
+      pole.castShadow = true; gameRoot.add(pole);
+      pole.userData.pick = { type:'peg', peg:p };
+      pickables.push(pole);
+      const lbl = makeTextSprite('เสา ' + this.pegLabels[p], { world:.9, border:'#4aa3ff' });
+      lbl.position.set(this.pegX[p], 4.05, 0); gameRoot.add(lbl);
+      const zone = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.35,1.35,.08,24),
+        new THREE.MeshBasicMaterial({ color:0x4aa3ff, transparent:true, opacity:.14 })
+      );
+      zone.position.set(this.pegX[p], .34, 0);
+      zone.userData.pick = { type:'peg', peg:p };
+      gameRoot.add(zone); pickables.push(zone);
+    }
+    // ถัง 4 ใบ ขนาดไล่ระดับ สีไม้ต่างกัน
+    const woodColors = ['#e0b34d','#c98a4b','#a96b3f','#7e5230'];
+    this.discs = [];
+    this.discWorldR = [];
+    for(let i=0;i<this.N;i++){ // i=0 เล็กสุด
+      const w = new THREE.Group();
+      const b = createBarrelAsset({ contents:'closed', colorway:'oak-iron', wood:woodColors[i], width:.46+i*.09 });
+      enableShadow(b);
+      const sz = worldSize(b);
+      const targetH = .62, targetR = .45 + i*.17;
+      b.scale.set(targetR/(sz.x/2), targetH/sz.y, targetR/(sz.z/2));
+      w.add(b);
+      // hitbox ทรงกระบอกโปร่งใส: ถัง polyfork ป่องเอว ปากบนแคบ ทำให้รังสีคลิก
+      // ลอดข้ามขอบไปโดนเสา/ฐานใต้ถังได้ — ใส่กระบอกแน่นครอบให้คลิกถังได้ทั้งใบ
+      const hit = new THREE.Mesh(
+        new THREE.CylinderGeometry(targetR, targetR, targetH + .04, 14),
+        new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
+      );
+      hit.position.y = targetH/2 + .01;
+      w.add(hit);
+      const disc = { wrapper:w, size:i, peg:0, worldR:targetR };
+      w.userData.pick = { type:'disc', disc };
+      gameRoot.add(w);
+      this.discs.push(disc);
+      pickables.push(w);
+    }
+    // วางถังบนเสา A: ใบใหญ่อยู่ล่าง → push จากใหญ่ไปเล็ก
+    for(let i=this.N-1;i>=0;i--){ this.pegs[0].push(i); this.discs[i].peg = 0; }
+    this.layoutPeg(0);
+  }
+  discY(pegIdx, posInStack){ return .3 + .05 + posInStack*.68 + .31; }
+  layoutPeg(p, animateFrom=null){
+    this.pegs[p].forEach((di, pos)=>{
+      const d = this.discs[di];
+      d.wrapper.position.set(this.pegX[p], this.discY(p,pos), 0);
+    });
+  }
+  topOf(p){ return this.pegs[p].length ? this.discs[this.pegs[p][this.pegs[p].length-1]] : null; }
+  refreshStats(){ $('hgMove').textContent = this.moves; }
+  async onClick(pick){
+    if(busy || this.busyAnim) return;
+    if(pick.type==='disc'){
+      const d = pick.disc;
+      // ถือถังอยู่แล้วแล้วคลิกถังใบอื่น = ต้องการ "วางลงบนเสาของใบนั้น"
+      if(this.selected && this.selected !== d){
+        return this.tryDrop(d.peg);
+      }
+      const top = this.topOf(d.peg);
+      if(top !== d){
+        AudioFX.error(); toast('ยกได้เฉพาะใบบนสุดเท่านั้น — นี่คือกฎของ Stack (LIFO)!');
+        await shake(d.wrapper);
+        return;
+      }
+      if(this.selected === d){ return this.deselect(); }
+      this.selected = d; AudioFX.select();
+      ringAt(d.wrapper, d.worldR+.18);
+      await tween({ dur:.25, update:e=>{ d.wrapper.position.y = this.discY(d.peg, this.pegs[d.peg].length-1) + e*.8; } });
+      speak('เลือกแล้ว! คลิกเสาปลายทาง (ฐานเสา / เสา / ถังบนเสานั้น) เพื่อวาง', 2200);
+    }
+    else if(pick.type==='peg'){
+      if(!this.selected){ AudioFX.error(); toast('เลือกถังใบบนสุดก่อนนะ แล้วค่อยคลิกเสาปลายทาง'); return; }
+      await this.tryDrop(pick.peg);
+    }
+  }
+  async deselect(){
+    if(!this.selected) return;
+    const d = this.selected; this.selected = null; ringOff();
+    await tween({ dur:.22, update:e=>{ d.wrapper.position.y = this.discY(d.peg, this.pegs[d.peg].length-1) + .8*(1-e); } });
+  }
+  async tryDrop(target){
+    const d = this.selected;
+    if(!d) return;
+    if(target === d.peg){ return this.deselect(); }
+    const top = this.topOf(target);
+    if(top && d.size > top.size){
+      // ใบที่ยก (d) ใหญ่กว่าใบบนสุดของเสาปลายทาง → ผิดกติกา
+      AudioFX.error();
+      toast('ใบใหญ่วางบนใบเล็กไม่ได้! ต้องวางบนใบที่ใหญ่กว่าหรือเสาว่างเท่านั้น');
+      await shake(d.wrapper);
+      return;
+    }
+    this.selected = null; ringOff();
+    await this.move(d, target, true);
+  }
+  async move(d, target, byPlayer=false){
+    this.busyAnim = true; AudioFX.swap();
+    const from = d.peg;
+    const idx = this.pegs[from].lastIndexOf(d.size);
+    if(idx === -1) this.pegs[from].pop(); else this.pegs[from].splice(idx, 1);
+    this.pegs[target].push(d.size);
+    d.peg = target;
+    const dest = new THREE.Vector3(this.pegX[target], this.discY(target, this.pegs[target].length-1), 0);
+    const y0 = d.wrapper.position.y;
+    // ยกขึ้นพ้นยอดเสา → บิน → ลง
+    await tween({ dur:.24, update:e=>{ d.wrapper.position.y = y0 + e*(3.75-y0); } });
+    await arcMove(d.wrapper, dest, { height:.3, dur:.5 });
+    AudioFX.place();
+    this.busyAnim = false;
+    if(byPlayer){
+      this.moves++; this.refreshStats();
+      if(this.pegs[2].length === this.N) this.winGame();
+    }
+  }
+  winGame(){
+    const min = Math.pow(2,this.N)-1;
+    const stars = this.moves===min?3 : this.moves<=min+5?2 : 1;
+    busy = true;
+    showWin(stars,
+      `ใช้ <b>${this.moves}</b> ก้าว (น้อยที่สุดคือ <b>${min}</b> ก้าว)<br>
+       เคล็ดลับ (Recursion): ย้าย n−1 ใบไปเสาพัก → ย้ายใบใหญ่สุดไป C → ย้าย n−1 ใบทับไป C`,
+      'อัจฉริยะ! แต่ละเสาคือ Stack — ยกได้เฉพาะของบนสุดเสมอ (LIFO) 🗼');
+  }
+  /* รีเซ็ตกระดานกลับไปต้นแบบ (ใบใหญ่ล่าง บนเสา A) — วางตามลำดับชั้นใน pegs[0] จริง */
+  async resetBoard(){
+    this.selected = null; ringOff();
+    this.pegs = [[],[],[]];
+    for(let i=this.N-1;i>=0;i--){ this.pegs[0].push(i); this.discs[i].peg = 0; }
+    this.moves = 0; this.refreshStats();
+    await Promise.all(this.pegs[0].map((di,pos)=>{
+      const d = this.discs[di];
+      return arcMove(d.wrapper, new THREE.Vector3(this.pegX[0], this.discY(0,pos), 0), { height:1.1 });
+    }));
+  }
+  async demo(){
+    if(busy || this.busyAnim) return;
+    busy = true; ringOff();
+    $('hgDemo').disabled = true;
+    await this.resetBoard();
+    speak('Recursion คือการมองปัญหาใหญ่เป็นปัญหาเล็กที่เหมือนเดิม: "ย้าย 3 ใบ = ย้าย 2 ใบ + ย้าย 1 ใบ + ย้าย 2 ใบ"', 6500);
+    await wait(700);
+    const moves = [];
+    const solve = (n, from, to, via)=>{
+      if(n===0) return;
+      solve(n-1, from, via, to);
+      moves.push([n-1, from, to]);
+      solve(n-1, via, to, from);
+    };
+    solve(this.N, 0, 2, 1);
+    for(const [di, from, to] of moves){
+      const d = this.discs.find(x=>x.size===di);
+      speak(`ย้ายใบเล็กสุดที่เหลือ... จาก ${this.pegLabels[from]} → ${this.pegLabels[to]}`, 1200);
+      await wait(260);
+      await this.move(d, to, false);
+      await wait(120);
+    }
+    speak('ครบ! 2ⁿ−1 = 15 ก้าวพอดี นี่คือพลังของการคิดแบบ Recursive ✨', 5000);
+    toast('เฉลยแบบ Recursion เสร็จสมบูรณ์ — ลองทำเองอีกครั้งเพื่อรับ 3 ดาว!');
+    busy = false; $('hgDemo').disabled = false;
+  }
+}
+
+/* =========================================================================
+   ภารกิจ 3 — ตามหาเส้นทางเก็บเหรียญ (BFS + Queue)
+   ========================================================================= */
+class BfsGame {
+  constructor(){
+    this.mission = MISSIONS[2];
+    this.G = 9;            // ขนาดกริด 9x9
+    this.TILE = 1.25;
+    this.start = {x:4, z:8};
+    this.coinCells = [{x:0,z:0},{x:8,z:0},{x:4,z:2}];
+    // ผนัง (พร้อมรูปแบบให้เป็นเขาวงกต)
+    const walls = [
+      [1,0],[4,0],[6,0],
+      [1,1],[3,1],[4,1],[6,1],[7,1],
+      [5,2],[6,2],
+      [0,3],[1,3],[3,3],[5,3],[6,3],
+      [3,4],[7,4],
+      [1,5],[2,5],[3,5],[5,5],[6,5],[7,5],
+      [1,7],[2,7],[3,7],[4,7],[6,7],
+    ];
+    this.wall = new Set(walls.map(([x,z])=>x+','+z));
+    this.robotCell = {...this.start};
+    this.coinsLeft = this.coinCells.length;
+    this.totalExplored = 0; this.walkCount = 0;
+    this.showWave = true;
+    this.busyAnim = false;
+
+    this.build();
+    camTo([0, 15, 8], [0, 0, .3]);
+    robot.position.set(this.cx(4), 0, this.cz(8));
+    robot.rotation.y = Math.PI;
+    speak('คลิกช่องไหนก็ได้บนแผนที่ แล้วดูฉันหาเส้นทางสั้นที่สุดด้วย <b>BFS</b> — สีส้มคือช่องที่กำลังรอคิว (Queue) นะ!', 7000);
+    setInstruction('คลิกช่องเป้าหมายเพื่อให้บอทที้เดินไปเก็บ<b>เหรียญ 🪙 ให้ครบ 3 เหรียญ</b> — สังเกตคลื่นการค้นหาของ BFS!');
+    setStats(`
+      <span class="chip">🪙 เหรียญ: <b id="bgCoin">0/3</b></span>
+      <span class="chip">✅ สำรวจแล้ว: <b id="bgEx">0</b> ช่อง</span>
+      <span class="chip">📦 ในคิว: <b id="bgQ">0</b></span>
+      <span class="chip"><span class="legendDot" style="background:#ff9a1f"></span> รอในคิว &nbsp;<span class="legendDot" style="background:#58b7ff"></span> สำรวจแล้ว &nbsp;<span class="legendDot" style="background:#ffd400"></span> เส้นทาง</span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(2) },
+      { label:'🌊 ซ่อน/แสดงคลื่น', cls:'btn-pink', fn:()=>{ this.showWave = !this.showWave;
+        toast(this.showWave? 'แสดงคลื่นสำรวจ BFS แล้ว' : 'ซ่อนคลื่นแล้ว — เห็นเฉพาะเส้นทาง'); } },
+    ]);
+    onPickHandler = p => this.onClick(p);
+  }
+  cx(gx){ return (gx - 4) * this.TILE; }
+  cz(gz){ return (gz - 4) * this.TILE; }
+  build(){
+    this.tiles = [];
+    const tileGeo = new THREE.BoxGeometry(this.TILE*.94, .14, this.TILE*.94);
+    for(let z=0; z<this.G; z++){
+      for(let x=0; x<this.G; x++){
+        const isWall = this.wall.has(x+','+z);
+        // สีอ่อนกลาง ๆ เพื่อให้สถานะ BFS (ส้ม/ฟ้า/เหลือง) เด่นชัด
+        const mat = new THREE.MeshStandardMaterial({
+          color: isWall ? 0x5da44e : (x+z)%2 ? 0xcdeec0 : 0xbde6ab,
+          roughness:.85,
+        });
+        const t = new THREE.Mesh(tileGeo, mat);
+        t.position.set(this.cx(x), .07, this.cz(z));
+        t.receiveShadow = true;
+        t.userData.pick = { type:'tile', x, z, wall:isWall };
+        gameRoot.add(t);
+        this.tiles.push(t);
+        pickables.push(t);
+      }
+    }
+    // ของขวางหน้า: ต้นไม้/กล่อง — ตั้งใจให้เตี้ยกว่าหุ่นยนต์ เพื่อไม่บังกระดาน
+    for(const key of this.wall){
+      const [x,z] = key.split(',').map(Number);
+      const kind = (x + z) % 3;
+      let ob;
+      if(kind===0){
+        ob = createTreeAsset({ colorway: pickFrom(['summer','spring','autumn']), species:'conifer', size:.9 });
+      } else if(kind===1){
+        ob = createTreeAsset({ colorway:'summer', species:'ash', size:.85 });
+      } else {
+        ob = createCrateAsset({ colorway:'empire-crimson' });
+      }
+      ob.position.set(this.cx(x), .12, this.cz(z));
+      const targetH = kind===2 ? 1.0 : 1.35; // กล่องเตี้ยกว่าต้นไม้
+      const h = worldSize(ob).y;
+      ob.scale.setScalar(targetH / h);
+      ob.rotation.y = rand(-.4,.4);
+      enableShadow(ob);
+      gameRoot.add(ob);
+    }
+    // เหรียญ (asset จริงเส้นผ่านศูนย์กลาง ~6 ซม. → ขยายให้เห็นชัด)
+    this.COIN_S = 7;
+    this.coins = [];
+    for(const c of this.coinCells){
+      const coin = createCoinAsset({ emblem:'star' });
+      coin.scale.setScalar(this.COIN_S);
+      coin.position.set(this.cx(c.x), .55, this.cz(c.z));
+      enableShadow(coin);
+      gameRoot.add(coin);
+      // หมุดลอยเหนือเหรียญ ให้มองเห็นแม้มีของบัง
+      const marker = new THREE.Mesh(
+        new THREE.ConeGeometry(.16, .34, 4),
+        new THREE.MeshBasicMaterial({ color:0xffd400 })
+      );
+      marker.rotation.x = Math.PI;
+      marker.position.set(this.cx(c.x), 1.8, this.cz(c.z));
+      gameRoot.add(marker);
+      this.coins.push({ mesh:coin, cell:c, got:false, marker });
+    }
+  }
+  refreshStats(){
+    $('bgCoin').textContent = `${3-this.coinsLeft}/3`;
+    $('bgEx').textContent = this.totalExplored;
+    $('bgQ').textContent = this._qsize||0;
+  }
+  neighbors({x,z}){
+    const out = [];
+    for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, nz=z+dz;
+      if(nx<0||nz<0||nx>=this.G||nz>=this.G) continue;
+      if(this.wall.has(nx+','+nz)) continue;
+      out.push({x:nx, z:nz});
+    }
+    return out;
+  }
+  setTile(x,z,color){
+    const t = this.tiles[z*this.G+x];
+    t.material.color.set(color);
+    t.userData.state = color;
+  }
+  clearMarks(){
+    for(const t of this.tiles){
+      if(!t.userData.pick.wall && (t.userData.state === 0x58b7ff || t.userData.state === 0xff9a1f || t.userData.state === 0xffd400 || t.userData.state===0xff5fa8)){
+        this.setTile(t.userData.pick.x, t.userData.pick.z, (t.userData.pick.x+t.userData.pick.z)%2 ? 0xcdeec0 : 0xbde6ab);
+      }
+    }
+  }
+  async onClick(pick){
+    if(busy || this.busyAnim || pick.type!=='tile') return;
+    if(pick.wall){ AudioFX.error(); toast('ต้นไม้ขวางอยู่ ไปทางนั้นไม่ได้! เลือกช่องหญ้าสิ'); return; }
+    if(pick.x===this.robotCell.x && pick.z===this.robotCell.z){ toast('บอทที้ยืนอยู่ช่องนี้อยู่แล้ว~'); return; }
+    await this.goTo(pick);
+  }
+  async goTo(target){
+    this.busyAnim = true;
+    this.clearMarks();
+    // ---- BFS ----
+    const start = {...this.robotCell};
+    const key = c => c.x+','+c.z;
+    const targetKey = key(target);
+    const parent = new Map(); parent.set(key(start), null);
+    const visited = new Set([key(start)]);
+    const queue = [start];
+    let found = false;
+    const waveSteps = []; // บันทึกขั้นตอนเพื่อเล่นแอนิเมชัน
+    while(queue.length){
+      const cur = queue.shift();
+      const step = { cur:{...cur}, enq:[] };
+      waveSteps.push(step);
+      for(const nb of this.neighbors(cur)){
+        if(visited.has(key(nb))) continue;
+        visited.add(key(nb));
+        parent.set(key(nb), key(cur));
+        queue.push(nb);
+        step.enq.push({...nb});
+      }
+      if(visited.has(targetKey)){ found = true; break; }
+    }
+    // ---- เล่นอนิเมชันคลื่น BFS (จำลองคิวจริงไปพร้อมกัน) ----
+    if(this.showWave){
+      const simQ = [{...start}];
+      for(const step of waveSteps){
+        simQ.shift();
+        for(const nb of step.enq) simQ.push(nb);
+        if(step.cur.x!==start.x || step.cur.z!==start.z) this.setTile(step.cur.x, step.cur.z, 0x58b7ff);
+        for(const nb of step.enq) this.setTile(nb.x, nb.z, 0xff9a1f);
+        this.totalExplored++; this._qsize = simQ.length;
+        this.refreshStats();
+        AudioFX.tone(700 + Math.min(600, waveSteps.indexOf(step)*6), .03, 'sine', .028);
+        await wait(46);
+      }
+    } else {
+      this.totalExplored += waveSteps.length;
+      this.refreshStats();
+    }
+    if(!found){
+      AudioFX.error();
+      this.busyAnim = false;
+      toast('อุ๊ปส์… ช่องนี้ไปไม่ถึง มีต้นไม้ล้อมไว้ครบ! (BFS ตรวจทุกช่องที่ไปได้แล้ว)');
+      speak('BFS สำรวจครบทุกช่องที่ไปถึงได้แล้ว แต่ไม่เจอช่องนั้น — แปลว่าถูกต้นไม้ล้อมกันครบวงจรรอบนะ!', 5000);
+      return;
+    }
+    // ---- ไล่เส้นทางย้อนจากเป้าหมาย ----
+    const path = [];
+    let k = key({x:target.x, z:target.z});
+    while(k){ path.push(k.split(',').map(Number)); k = parent.get(k); }
+    path.reverse(); // [start, ..., target]
+    for(let i=1;i<path.length;i++){
+      const [x,z] = path[i];
+      this.setTile(x, z, 0xffd400);
+      AudioFX.tone(520+i*24, .05, 'triangle', .06);
+      await wait(60);
+    }
+    const [tx,tz] = path[path.length-1];
+    this.setTile(tx, tz, 0xff5fa8);
+    speak(`เจอแล้ว! เส้นทางสั้นที่สุดยาว ${path.length-1} ก้าว — BFS การันตีว่าสั้นที่สุดเสมอ เพราะค้นทีละระยะเท่ากันจากใกล้ไปไกล`, 5200);
+    // ---- หุ่นยนต์เดิน ----
+    await wait(240);
+    for(let i=1;i<path.length;i++){
+      const [x,z] = path[i];
+      const from = robot.position.clone();
+      const to = new THREE.Vector3(this.cx(x), 0, this.cz(z));
+      const ang = Math.atan2(to.x-from.x, to.z-from.z);
+      robot.rotation.y = ang;
+      await tween({ dur:.17, update:e=>{
+        robot.position.lerpVectors(from, to, e);
+        robotHop = Math.abs(Math.sin(e*Math.PI))*.16;
+      }});
+      robotHop = 0; AudioFX.step();
+      this.robotCell = {x, z};
+      // เก็บเหรียญ?
+      const coin = this.coins.find(c=>!c.got && c.cell.x===x && c.cell.z===z);
+      if(coin){
+        coin.got = true; this.coinsLeft--; AudioFX.coin();
+        this.refreshStats();
+        await tween({ dur:.35, update:e=>{ coin.mesh.position.y = .55 + e*.9; } });
+        await popScale(coin.mesh, {from:this.COIN_S*1.15, to:.01, dur:.25});
+        coin.mesh.visible = false;
+        coin.marker.visible = false;
+        speak('ได้เหรียญแล้ว! 🪙 ในคิว (Queue) ใครเข้าก่อนออกก่อน ทำให้คลื่นขยายจากใกล้ไปไกลอย่างเป็นระเบียบ', 4200);
+      }
+    }
+    this.walkCount += path.length-1;
+    this.refreshStats();
+    this.busyAnim = false;
+    // คงสีเส้นทาง/การสำรวจไว้ให้เด็กดูต่อ จะล้างเมื่อคลิกครั้งถัดไป
+    if(this.coinsLeft===0) this.winGame();
+  }
+  winGame(){
+    const stars = 3;
+    busy = true;
+    showWin(stars,
+      `เก็บครบ 3 เหรียญ! รวมสำรวจ <b>${this.totalExplored}</b> ช่อง เดินรวม <b>${this.walkCount}</b> ก้าว<br>
+       BFS ยืดระยะค้นหาออกจากจุดเริ่มทีละวง เหมือนหยดน้ำกระเพื่อม — เจอเป้าได้เร็วเมื่ออยู่ใกล้`,
+      'เก่งมาก! Queue ของ BFS ช่วยให้หาเส้นทางสั้นที่สุดได้เสมอ 🪙🪙🪙');
+  }
+}
+
+/* =========================================================================
+   ลูปเรนเดอร์
+   ========================================================================= */
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), .05);
+  const t = clock.elapsedTime;
+
+  updateTweens(dt);
+  controls.update();
+
+  // บอทที้หายใจ/โยกตัว
+  const breathe = Math.sin(t*2.2)*.03;
+  robot.position.y = robotBaseY + robotHop + Math.max(0, breathe);
+  robot.rotation.z = Math.sin(t*1.1)*.025;
+
+  // เมฆลอย
+  for(const c of clouds.children){
+    c.position.x += c.userData.speed * dt;
+    if(c.position.x > 26) c.position.x = -26;
+  }
+
+  // วงแหวนเลือก
+  if(selectRing.visible && selectRing.userData.follow){
+    const f = selectRing.userData.follow;
+    selectRing.position.set(f.position.x, .06, f.position.z);
+    const pulse = 1 + Math.sin(t*5)*.08;
+    selectRing.scale.setScalar((selectRing.userData.r||1) * pulse);
+  }
+
+  // เหรียญหมุน + หมุดลอยบอกตำแหน่ง
+  if(currentGame instanceof BfsGame){
+    let ci = 0;
+    for(const c of currentGame.coins) if(!c.got){
+      c.mesh.rotation.y += dt*2.6;
+      c.marker.position.y = 1.8 + Math.sin(t*2.6 + ci*2.1)*.15;
+      c.marker.rotation.y += dt*2.2;
+      ci++;
+    }
+  }
+
+  updateBubble();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* เริ่มต้น: แสดงเมนู + หมุนชมหมู่บ้าน */
+controls.autoRotate = true;
+controls.autoRotateSpeed = .55;
+
+/* debug hook (ใช้สำหรับทดสอบอัตโนมัติ) */
+window.__algo = {
+  startMission,
+  game: ()=>currentGame,
+  project(v3){ const v = new THREE.Vector3(v3.x, v3.y, v3.z).project(camera);
+    return { x:(v.x*.5+.5)*innerWidth, y:(-v.y*.5+.5)*innerHeight }; },
+  /* สำหรับ debug/ทดสอบ: จำลอง raycast ที่พิกัดหน้าจอ บอกว่าโดน pickable อะไรตามลำดับระยะ */
+  probe(clientX, clientY){
+    const ndc = new THREE.Vector2((clientX/innerWidth)*2-1, -(clientY/innerHeight)*2+1);
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(pickables, true);
+    return hits.slice(0,5).map(h=>{
+      let o = h.object, pick = null;
+      while(o){ if(o.userData.pick){ pick = o.userData.pick; break; } o = o.parent; }
+      const brief = pick ? { type: pick.type, peg: pick.peg, idx: pick.idx,
+                              discSize: pick.disc ? pick.disc.size : undefined } : null;
+      return { d: Math.round(h.distance*100)/100, pick: brief };
+    });
+  },
+};
+</script>
+</body>
+</html>
