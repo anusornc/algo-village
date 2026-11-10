@@ -117,6 +117,9 @@
   .card.c1{ border-color:#ffd8b8; } .card.c1 .go{ background:linear-gradient(135deg,#ff9a4d,var(--orange)); }
   .card.c2{ border-color:#cfe6ff; } .card.c2 .go{ background:linear-gradient(135deg,#6db5ff,var(--blue)); }
   .card.c3{ border-color:#ffe9a8; } .card.c3 .go{ background:linear-gradient(135deg,#ffe066,#f5b93b); }
+  .card.c4{ border-color:#ffd1e1; } .card.c4 .go{ background:linear-gradient(135deg,#ff8fb3,var(--pink)); }
+  .card.c5{ border-color:#ddccff; } .card.c5 .go{ background:linear-gradient(135deg,#b28dff,#8a63e8); }
+  .card.c6{ border-color:#c9f2ec; } .card.c6 .go{ background:linear-gradient(135deg,#4fd1c5,#0ea5a0); }
   .card .emoji{ font-size:44px; line-height:1; }
   .card h3{ font-size:19px; font-weight:700; }
   .card .tag{ font-size:12.5px; font-weight:700; color:#7a6fc0; }
@@ -206,7 +209,10 @@
         <b>ภารกิจ 2 · หอคอยฮานอย</b> — แท่งเสาแต่ละต้นคือโครงสร้างข้อมูลแบบ <b>Stack</b> (ยกของได้เฉพาะใบบนสุด = LIFO)
         และปุ่ม "ดูเฉลย" แสดงวิธีคิดแบบ <b>Recursion</b> — แก้ปัญหาใหญ่จากปัญหาเล็กที่ซ้ำรูปแบบเดิม จำนวนขั้นน้อยสุดคือ 2ⁿ−1<br>
         <b>ภารกิจ 3 · ตามหาเส้นทาง</b> — สาธิต <b>Breadth-First Search (BFS)</b> ค้นหาทีละวง (คลื่นสีส้ม = ของที่อยู่ใน Queue)
-        ซึ่งการการันตีว่าเจอเส้นทางสั้นที่สุด — ลองสังเกตว่าบางครั้งต้องสำรวจหลายช่องกว่าจะถึงเป้าหมาย
+        ซึ่งการการันตีว่าเจอเส้นทางสั้นที่สุด — ลองสังเกตว่าบางครั้งต้องสำรวจหลายช่องกว่าจะถึงเป้าหมาย<br>
+        <b>ภารกิจ 4 · หยิบใบเล็กสุด</b> — <b>Selection Sort</b>: ทุกรอบต้อง "สแกนหาค่าน้อยสุด" ก่อนคลิก เด็กจะรู้สึกถึงต้นทุนของการเทียบ (5 ใบต้องเทียบ ~10 ครั้ง แต่สลับแค่ ≤4 ครั้ง)<br>
+        <b>ภารกิจ 5 · แทรกการ์ดให้เรียง</b> — <b>Insertion Sort</b>: ยกใบแรกของกองขวาแล้วแทรกลงช่องที่ถูกต้อง เหมือนจัดไพ่ — ชี้ให้เห็นว่าถ้าข้อมูลเกือบเรียงแล้ววิธีนี้เร็วมาก<br>
+        <b>ภารกิจ 6 · สนามแข่ง Sorting</b> — รัน Bubble/Selection/Insertion บน<b>ข้อมูลชุดเดียวกัน</b> พร้อมนับจำนวน compare/swap จริง ปิดท้ายด้วยตารางเปรียบเทียบ — ชวนเด็กคุยว่า "ทำไมสลับน้อยสุด ≠ เทียบน้อยสุด"
       </p>
     </details>
     <div class="credit">สร้างด้วย Three.js + 3D assets จาก polyfork.dev</div>
@@ -260,6 +266,14 @@ const pickFrom = arr => arr[Math.floor(Math.random()*arr.length)];
 const clamp01 = k => Math.min(1, Math.max(0, k));
 const easeInOut = k => k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2;
 const easeOutBack = k => { const c=1.70158; return 1 + (c+1)*Math.pow(k-1,3) + c*Math.pow(k-1,2); };
+/* สุ่มลำดับ 1..n ที่ยังไม่เรียงอยู่แล้ว (ใช้ร่วมทุกภารกิจ sorting) */
+function shuffledValues(n=5){
+  const v = Array.from({length:n}, (_,i)=>i+1);
+  do{
+    for(let i=v.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [v[i],v[j]]=[v[j],v[i]]; }
+  }while(v.every((x,i)=>x===i+1));
+  return v;
+}
 
 /* ---------------- เสียงเอฟเฟกต์ (WebAudio ง่าย ๆ) ---------------- */
 const AudioFX = {
@@ -569,6 +583,15 @@ const MISSIONS = [
   { id:'bfs', n:3, emoji:'🧭', name:'ตามหาเส้นทางเก็บเหรียญ', concept:'BFS · Queue',
     desc:'คลิกช่องที่ต้องการ แล้วดูบอทที้ค้นหาเส้นทางแบบ BFS — คลื่นสีส้มคือช่องที่กำลังรอใน Queue เก็บให้ครบ 3 เหรียญ!',
     teaches:'Queue (FIFO) · Breadth-First Search · เส้นทางสั้นที่สุด' },
+  { id:'selection', n:4, emoji:'🎯', name:'หยิบใบเล็กสุด', concept:'Selection Sort',
+    desc:'แต่ละรอบให้หา "ถังเล็กสุด" ในกองที่ยังไม่เรียง แล้วบอทที้จะสลับมันไปไว้หน้าโซน — เรียงครบแค่ 4 รอบ!',
+    teaches:'การสแกนหาค่าน้อยสุด (min scan) · Selection Sort สลับน้อยแต่ต้องเทียบเยอะ' },
+  { id:'insertion', n:5, emoji:'🃏', name:'แทรกการ์ดให้เรียง', concept:'Insertion Sort',
+    desc:'เหมือนจัดไพ่ในมือ! ยกใบแรกของกองขวาขึ้น แล้วเลือกช่องแทรก 🟡 ที่ทำให้กองซ้ายยังเรียงอยู่เสมอ',
+    teaches:'การแทรกเข้าลิสต์ที่เรียงแล้ว · Insertion Sort เร็วมากถ้าข้อมูลเกือบเรียงอยู่แล้ว' },
+  { id:'race', n:6, emoji:'🏁', name:'สนามแข่ง Sorting', concept:'เปรียบเทียบ 3 อัลกอริทึม',
+    desc:'Bubble vs Selection vs Insertion — ข้อมูลชุดเดียวกัน สนามเดียวกัน ใครทำงานน้อยกว่ากัน? ดูสถิติจริงท้ายเกม!',
+    teaches:'อ่านสถิติ compare/swap · โจทย์ต่างกัน อัลกอริทึมที่เหมาะต่างกัน' },
 ];
 
 function clearGame(){
@@ -614,7 +637,10 @@ function startMission(i){
   controls.autoRotate = false;
   if(m.id === 'sort'){ currentGame = new SortGame(); }
   else if(m.id === 'hanoi'){ currentGame = new HanoiGame(); }
-  else { currentGame = new BfsGame(); }
+  else if(m.id === 'bfs'){ currentGame = new BfsGame(); }
+  else if(m.id === 'selection'){ currentGame = new SelectionGame(); }
+  else if(m.id === 'insertion'){ currentGame = new InsertionGame(); }
+  else { currentGame = new RaceGame(); }
 }
 function showMenu(){
   clearGame(); currentGame = null;
@@ -649,7 +675,7 @@ function showWin(stars, statsHtml, robotMsg){
 /* สร้างการ์ดในเมนู */
 {
   const cards = $('menuCards');
-  const cls = ['c1','c2','c3'];
+  const cls = ['c1','c2','c3','c4','c5','c6'];
   MISSIONS.forEach((m,i)=>{
     const c = document.createElement('div');
     c.className = 'card ' + cls[i];
@@ -1282,6 +1308,537 @@ class BfsGame {
 }
 
 /* =========================================================================
+   ภารกิจ 4 — หยิบใบเล็กสุด (Selection Sort)
+   ========================================================================= */
+class SelectionGame {
+  constructor(){
+    this.mission = MISSIONS[3];
+    this.values = shuffledValues();
+    this.sortedCount = 0;
+    this.picks = 0; this.mistakes = 0;
+    this.busyAnim = false;
+    this.slotsX = i => -4.8 + i*2.4;
+    this.wrappers = [];
+    this.build();
+    camTo([0, 6.5, 11.5], [0, .9, 0]);
+    robot.position.set(0, 0, -6.5); robot.rotation.y = 0;
+    speak('ทีนี้ลองวิธี Selection Sort: มองหาถัง<b>ใบเล็กที่สุด</b>ในโซนขวาแล้วคลิกมัน! ฉันจะสลับมันไปไว้หน้าโซนให้', 7000);
+    setInstruction('แต่ละรอบ คลิกถัง<b>เล็กที่สุด</b>ในโซนที่ยังไม่เรียง (ขวา) — บอทที้จะสลับมันไปไว้หน้าโซนเขียว');
+    setStats(`
+      <span class="chip">🎯 หยิบถูก: <b id="selPicks">0</b>/4 รอบ</span>
+      <span class="chip">❌ หยิบผิด: <b id="selWrong">0</b> ครั้ง</span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(3) },
+      { label:'🤖 ดู Selection Sort', cls:'btn-orange', id:'selDemo', fn:()=>this.demo() },
+    ]);
+    onPickHandler = p => this.onClick(p);
+  }
+  makeBarrel(v){
+    const w = new THREE.Group();
+    const b = createBarrelAsset({ contents:'closed', colorway:'oak-iron' });
+    enableShadow(b);
+    const s = .5 + v*.15;
+    b.scale.setScalar(s);
+    w.add(b);
+    const bs = worldSize(b);
+    const hit = new THREE.Mesh(
+      new THREE.CylinderGeometry(Math.max(bs.x,bs.z)/2, Math.max(bs.x,bs.z)/2, bs.y+.04, 14),
+      new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
+    );
+    hit.position.y = bs.y/2 + .01;
+    w.add(hit);
+    const label = makeTextSprite(String(v), { world:.62 });
+    label.position.y = 1.15 + v*.18;
+    w.add(label);
+    return w;
+  }
+  build(){
+    for(let i=0;i<5;i++){
+      const w = this.makeBarrel(this.values[i]);
+      w.position.set(this.slotsX(i), 0, 0);
+      w.userData.pick = { type:'barrel', idx:i };
+      gameRoot.add(w); pickables.push(w); this.wrappers.push(w);
+    }
+    this.zone = new THREE.Mesh(
+      new THREE.BoxGeometry(1, .1, 2.2),
+      new THREE.MeshBasicMaterial({ color:0x5ec26a, transparent:true, opacity:.35 })
+    );
+    this.zone.position.set(0, .06, 0);
+    this.zone.visible = false;
+    gameRoot.add(this.zone);
+    const sign = makeTextSprite('เล็ก ⟶ ใหญ่', { world:1.9, fg:'#7a5b13', bg:'#fff7d6', border:'#ffd23f' });
+    sign.position.set(0, .32, 2.6);
+    gameRoot.add(sign);
+  }
+  refresh(){ $('selPicks').textContent = this.picks; $('selWrong').textContent = this.mistakes; }
+  minUnsorted(){
+    let m = this.sortedCount;
+    for(let j=this.sortedCount;j<5;j++) if(this.values[j] < this.values[m]) m = j;
+    return m;
+  }
+  updateZone(){
+    this.zone.visible = this.sortedCount > 0;
+    this.zone.scale.x = Math.max(.01, this.sortedCount*2.4);
+    this.zone.position.x = this.sortedCount ? this.slotsX((this.sortedCount-1)/2) : 0;
+  }
+  async swapSlots(a,b){
+    this.busyAnim = true; AudioFX.swap();
+    await Promise.all([
+      arcMove(this.wrappers[a], new THREE.Vector3(this.slotsX(b),0,0), { height:1.1 }),
+      arcMove(this.wrappers[b], new THREE.Vector3(this.slotsX(a),0,0), { height:.6 }),
+    ]);
+    [this.wrappers[a],this.wrappers[b]] = [this.wrappers[b],this.wrappers[a]];
+    [this.values[a],this.values[b]] = [this.values[b],this.values[a]];
+    this.wrappers.forEach((w,i)=>{ w.userData.pick.idx = i; w.position.y = 0; });
+    AudioFX.place(); this.busyAnim = false;
+  }
+  async onClick(pick){
+    if(busy || this.busyAnim || pick.type!=='barrel') return;
+    const i = pick.idx;
+    if(i < this.sortedCount){ AudioFX.error(); toast('ใบนี้เรียงแล้ว — หยิบจากโซนขวา'); return; }
+    const m = this.minUnsorted();
+    if(i !== m){
+      this.mistakes++; this.refresh(); AudioFX.error();
+      toast(`${this.values[i]} ยังไม่ใช่เล็กสุด — ยังมี ${this.values[m]} อยู่!`);
+      speak(`ต้องหา<b>ใบเล็กสุด</b>เสมอ ตอนนี้คือใบ ${this.values[m]} นะ`, 2400);
+      await shake(this.wrappers[i]);
+      return;
+    }
+    this.picks++; this.refresh();
+    if(i === this.sortedCount){
+      AudioFX.select();
+      const w = this.wrappers[i];
+      await tween({ dur:.35, update:e=>{ w.position.y = Math.sin(e*Math.PI)*.5; } });
+      AudioFX.place();
+    } else {
+      await this.swapSlots(i, this.sortedCount);
+    }
+    this.sortedCount++; this.updateZone();
+    if(this.sortedCount === 5) this.win();
+  }
+  win(){
+    const stars = this.mistakes===0 ? 3 : this.mistakes<=2 ? 2 : 1;
+    busy = true;
+    showWin(stars,
+      `หยิบถูกต้อง <b>${this.picks}</b> ครั้ง (Selection Sort ต้องหยิบแค่ <b>4</b> ครั้ง) หยิบผิด <b>${this.mistakes}</b> ครั้ง<br>
+       แต่ละรอบต้อง "สแกน" ดูใบเล็กสุดก่อนเสมอ — สลับน้อย แต่ต้องเทียบเยอะ!`,
+      'เยี่ยม! นี่คือ Selection Sort — หาค่าน้อยสุดทีละรอบจนเรียง 🎯');
+  }
+  async demo(){
+    if(busy || this.busyAnim) return;
+    busy = true; ringOff();
+    $('selDemo').disabled = true;
+    speak('Selection Sort: แต่ละรอบจะสแกนหาใบเล็กสุดของโซนขวา แล้วสลับไปไว้หน้าโซน', 5200);
+    await wait(800);
+    let compares = 0, swaps = 0;
+    for(let s=this.sortedCount; s<4; s++){
+      let m = s;
+      ringAt(this.wrappers[m], .6);
+      for(let j=s+1;j<5;j++){
+        compares++;
+        const wj = this.wrappers[j];
+        await tween({ dur:.16, update:e=>{ wj.position.y = Math.sin(e*Math.PI)*.28; } });
+        AudioFX.tone(620,.03,'sine',.045);
+        if(this.values[j] < this.values[m]){ m = j; ringAt(this.wrappers[m], .6); AudioFX.tone(760,.06,'sine',.09); }
+      }
+      speak(`รอบนี้เล็กสุดคือ ${this.values[m]} — สลับไปหน้าโซน!`, 1400);
+      await wait(420);
+      ringOff();
+      if(m !== s){ await this.swapSlots(m, s); swaps++; }
+      this.sortedCount = s+1; this.updateZone();
+      await wait(220);
+    }
+    this.sortedCount = 5; this.updateZone();
+    speak(`จบแล้ว! เทียบทั้งหมด ${compares} ครั้ง แต่สลับแค่ ${swaps} ครั้ง — สลับน้อยที่สุดในสามพี่น้อง`, 5200);
+    busy = false; $('selDemo').disabled = false;
+  }
+}
+
+/* =========================================================================
+   ภารกิจ 5 — แทรกการ์ดให้เรียง (Insertion Sort)
+   ========================================================================= */
+class InsertionGame {
+  constructor(){
+    this.mission = MISSIONS[4];
+    this.values = shuffledValues();
+    this.sortedLen = 1;
+    this.holding = null;
+    this.inserts = 0; this.wrong = 0;
+    this.busyAnim = false;
+    this.slotsX = i => -4.8 + i*2.4;
+    this.wrappers = []; this.gapMeshes = [];
+    this.build();
+    camTo([0, 6.5, 11.5], [0, .9, 0]);
+    robot.position.set(0, 0, -6.5); robot.rotation.y = 0;
+    speak('เหมือนจัดไพ่ในมือเลย! คลิกใบแรกของโซนขวา (มี 🔻) เพื่อยกขึ้น แล้วคลิก<b>ช่องแทรกสีเหลือง</b>ที่ทำให้โซนซ้ายยังเรียงอยู่', 7500);
+    setInstruction('คลิกใบแรกของโซนที่ยังไม่เรียง (มี 🔻) → ยกขึ้น → คลิก<b>ช่องแทรก 🟡</b> ที่ทำให้โซนซ้ายยังเรียงอยู่');
+    setStats(`
+      <span class="chip">🃏 แทรกถูก: <b id="igIns">0</b>/4 ครั้ง</span>
+      <span class="chip">❌ แทรกผิด: <b id="igWrong">0</b> ครั้ง</span>
+      <span class="chip"><span class="legendDot" style="background:#ffd23f"></span> ช่องแทรก</span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(4) },
+      { label:'🤖 ดู Insertion Sort', cls:'btn-orange', id:'igDemo', fn:()=>this.demo() },
+    ]);
+    onPickHandler = p => this.onClick(p);
+    onPickMiss = () => { if(!busy && !this.busyAnim && this.holding!==null) this.putBack(); };
+  }
+  makeBarrel(v){
+    const w = new THREE.Group();
+    const b = createBarrelAsset({ contents:'closed', colorway:'oak-iron' });
+    enableShadow(b);
+    const s = .5 + v*.15;
+    b.scale.setScalar(s);
+    w.add(b);
+    const bs = worldSize(b);
+    const hit = new THREE.Mesh(
+      new THREE.CylinderGeometry(Math.max(bs.x,bs.z)/2, Math.max(bs.x,bs.z)/2, bs.y+.04, 14),
+      new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
+    );
+    hit.position.y = bs.y/2 + .01;
+    w.add(hit);
+    const label = makeTextSprite(String(v), { world:.62 });
+    label.position.y = 1.15 + v*.18;
+    w.add(label);
+    return w;
+  }
+  build(){
+    for(let i=0;i<5;i++){
+      const w = this.makeBarrel(this.values[i]);
+      w.position.set(this.slotsX(i), 0, 0);
+      w.userData.pick = { type:'barrel', idx:i };
+      gameRoot.add(w); pickables.push(w); this.wrappers.push(w);
+    }
+    this.nextMarker = new THREE.Mesh(
+      new THREE.ConeGeometry(.16, .34, 4),
+      new THREE.MeshBasicMaterial({ color:0xff5fa8 })
+    );
+    this.nextMarker.rotation.x = Math.PI;
+    gameRoot.add(this.nextMarker);
+    const sign = makeTextSprite('เรียงแล้ว ⟵ ⟶ ยังไม่เรียง', { world:2.4, fg:'#7a5b13', bg:'#fff7d6', border:'#ffd23f' });
+    sign.position.set(0, .32, 2.6);
+    gameRoot.add(sign);
+    this.updateMarker();
+  }
+  updateMarker(){
+    if(this.sortedLen >= 5){ this.nextMarker.visible = false; return; }
+    this.nextMarker.visible = true;
+    this.nextMarker.position.set(this.slotsX(this.sortedLen), 1.9, 0);
+  }
+  refresh(){ $('igIns').textContent = this.inserts; $('igWrong').textContent = this.wrong; }
+  showGaps(){
+    this.hideGaps();
+    for(let p=0;p<=this.sortedLen;p++){
+      const x = p===0 ? this.slotsX(0)-1.2 : (this.slotsX(p-1)+this.slotsX(p))/2;
+      const g = new THREE.Mesh(
+        new THREE.CylinderGeometry(.3,.3,.1,18),
+        new THREE.MeshBasicMaterial({ color:0xffd23f, transparent:true, opacity:.75 })
+      );
+      g.position.set(x, .12, 0);
+      g.userData.pick = { type:'gap', p };
+      gameRoot.add(g); pickables.push(g); this.gapMeshes.push(g);
+    }
+  }
+  hideGaps(){
+    for(const g of this.gapMeshes){
+      gameRoot.remove(g);
+      const k = pickables.indexOf(g); if(k>=0) pickables.splice(k,1);
+    }
+    this.gapMeshes = [];
+  }
+  async putBack(){
+    const i = this.holding; this.holding = null; ringOff(); this.hideGaps();
+    await tween({ dur:.22, update:e=>{ this.wrappers[i].position.y = .9*(1-e); } });
+  }
+  async insertAt(p){
+    this.busyAnim = true; AudioFX.swap();
+    this.hideGaps(); ringOff();
+    const from = this.holding; this.holding = null;
+    const anims = [ arcMove(this.wrappers[from], new THREE.Vector3(this.slotsX(p),0,0), { height:.9, dur:.45 }) ];
+    for(let k=from-1;k>=p;k--)
+      anims.push(arcMove(this.wrappers[k], new THREE.Vector3(this.slotsX(k+1),0,0), { height:.35, dur:.45 }));
+    await Promise.all(anims);
+    const v = this.values.splice(from,1)[0];
+    this.values.splice(p,0,v);
+    const w = this.wrappers.splice(from,1)[0];
+    this.wrappers.splice(p,0,w);
+    this.wrappers.forEach((ww,i)=>{ ww.userData.pick.idx = i; ww.position.y = 0; });
+    this.inserts++; this.sortedLen++; this.refresh(); AudioFX.place();
+    this.updateMarker();
+    this.busyAnim = false;
+    if(this.sortedLen === 5) this.win();
+  }
+  async onClick(pick){
+    if(busy || this.busyAnim) return;
+    if(pick.type==='barrel'){
+      const i = pick.idx;
+      if(this.holding === i){ await this.putBack(); return; }
+      if(this.holding !== null){ AudioFX.error(); toast('วางใบที่ยกอยู่ก่อน — คลิกช่องแทรกสีเหลือง 🟡'); return; }
+      if(i < this.sortedLen){ AudioFX.error(); toast('ใบนี้เรียงแล้ว — หยิบใบที่มี 🔻 ลอยอยู่'); return; }
+      if(i !== this.sortedLen){ AudioFX.error(); toast('คลิกใบแรกของโซนขวา — ดูที่เครื่องหมาย 🔻'); return; }
+      this.holding = i; AudioFX.select();
+      ringAt(this.wrappers[i], .6);
+      await tween({ dur:.25, update:e=>{ this.wrappers[i].position.y = e*.9; } });
+      this.showGaps();
+      speak('ยกแล้ว! เลือกช่องแทรก 🟡 ที่ทำให้เรียงจากน้อยไปมาก', 2200);
+    }
+    else if(pick.type==='gap'){
+      if(this.holding === null){ AudioFX.error(); toast('ยกใบแรกของโซนขวาก่อน (คลิกใบที่มี 🔻)'); return; }
+      const p = pick.p;
+      const v = this.values[this.holding];
+      const ok = (p===0 || this.values[p-1] <= v) && (p===this.sortedLen || this.values[p] >= v);
+      if(!ok){
+        this.wrong++; this.refresh(); AudioFX.error();
+        toast('แทรกตรงนี้แล้วโซนซ้ายจะไม่เรียง! ลองช่องอื่นดู');
+        await shake(this.wrappers[this.holding]);
+        return;
+      }
+      await this.insertAt(p);
+    }
+  }
+  win(){
+    const stars = this.wrong===0 ? 3 : this.wrong<=2 ? 2 : 1;
+    busy = true;
+    showWin(stars,
+      `แทรกถูกต้อง <b>${this.inserts}</b> ครั้ง (Insertion Sort ต้องแทรกแค่ <b>n−1 = 4</b> ครั้งเสมอ) แทรกผิด <b>${this.wrong}</b> ครั้ง<br>
+       ทุกครั้งที่แทรก โซนซ้ายยังเรียงอยู่ตลอด — นี่คือจุดแข็งของ Insertion Sort`,
+      'เก่งมาก! เหมือนจัดไพ่ในมือ — นี่คือ Insertion Sort 🃏');
+  }
+  async demo(){
+    if(busy || this.busyAnim) return;
+    busy = true; ringOff(); this.hideGaps();
+    if(this.holding !== null){
+      const i = this.holding; this.holding = null;
+      await tween({ dur:.2, update:e=>{ this.wrappers[i].position.y = .9*(1-e); } });
+    }
+    $('igDemo').disabled = true;
+    speak('Insertion Sort หยิบใบแรกของโซนขวา แล้วสอดเข้าไปในโซนซ้ายให้เรียงเสมอ — เหมือนจัดไพ่', 5200);
+    await wait(900);
+    let compares = 0, shifts = 0;
+    for(let i=this.sortedLen; i<5; i++){
+      const v = this.values[i];
+      const w = this.wrappers[i];
+      ringAt(w, .6);
+      await tween({ dur:.2, update:e=>{ w.position.y = e*.9; } });
+      let k = i-1;
+      while(k >= 0 && this.values[k] > v){
+        compares++;
+        speak(`เทียบ ${this.values[k]} กับ ${v} → ${this.values[k]} มากกว่า เลื่อนขวา`, 1000);
+        const wk = this.wrappers[k];
+        await tween({ dur:.16, update:e=>{ wk.position.y = .3+e*.12; } });
+        await arcMove(wk, new THREE.Vector3(this.slotsX(k+1),0,0), { height:.35, dur:.28 });
+        wk.position.y = 0;
+        this.values[k+1] = this.values[k]; this.wrappers[k+1] = wk; shifts++;
+        k--;
+        AudioFX.tone(640,.04,'sine',.05);
+      }
+      this.values[k+1] = v; this.wrappers[k+1] = w;
+      await arcMove(w, new THREE.Vector3(this.slotsX(k+1),0,0), { height:.5, dur:.32 });
+      w.position.y = 0; ringOff();
+      this.wrappers.forEach((ww,idx)=>{ ww.userData.pick.idx = idx; ww.position.y = 0; });
+      this.sortedLen = Math.max(this.sortedLen, i+1);
+      this.inserts++; this.refresh(); this.updateMarker();
+      AudioFX.place();
+      await wait(180);
+    }
+    speak(`จบแล้ว! เทียบ ${compares} ครั้ง เลื่อน ${shifts} ครั้ง — ถ้าข้อมูลเกือบเรียงอยู่แล้ว วิธีนี้เร็วมาก!`, 5200);
+    busy = false; $('igDemo').disabled = false;
+  }
+}
+
+/* =========================================================================
+   ภารกิจ 6 — สนามแข่ง Sorting (เปรียบเทียบ 3 อัลกอริทึมบนข้อมูลเดียวกัน)
+   ========================================================================= */
+class RaceGame {
+  constructor(){
+    this.mission = MISSIONS[5];
+    this.N = 5;
+    this.values = shuffledValues();
+    this.skip = false;
+    this.running = false;
+    this.rows = [];
+    this.build();
+    camTo([0, 10.5, 13.5], [0, .6, 0]);
+    robot.position.set(7.4, 0, 0); robot.rotation.y = -2.6;
+    speak('สนามแข่ง! สามอัลกอริทึมได้ชุดข้อมูล<b>เดียวกัน</b> — จดสถิติ compare/swap ไว้เทียบกันท้ายเกมเลย!', 6000);
+    setInstruction('ดูบอทที้รัน 3 อัลกอริทึมบนข้อมูลชุดเดียวกัน — จดสถิติไว้ แล้วดูตารางเฉลยท้ายเกม (กด ⏭ ข้ามได้)');
+    setStats(`
+      <span class="chip">🫧 Bubble: <b id="rcB">…</b></span>
+      <span class="chip">🎯 Selection: <b id="rcS">…</b></span>
+      <span class="chip">🃏 Insertion: <b id="rcI">…</b></span>`);
+    setActions([
+      { label:'🔄 เริ่มใหม่', cls:'btn-ghost', fn:()=>startMission(5) },
+      { label:'⏭ ข้ามไปผลสรุป', cls:'btn-pink', id:'raceSkip', fn:()=>{ this.skip = true; } },
+    ]);
+    this.run();
+  }
+  slotX(i){ return -3.4 + i*1.7; }
+  build(){
+    const zs = [-3.5, 0, 3.5];
+    const names = ['🫧 Bubble Sort', '🎯 Selection Sort', '🃏 Insertion Sort'];
+    for(let r=0;r<3;r++){
+      const row = { z: zs[r], wrappers: [], values: [...this.values] };
+      for(let i=0;i<this.N;i++){
+        const w = new THREE.Group();
+        const b = createBarrelAsset({ contents:'closed', colorway:'oak-iron' });
+        enableShadow(b);
+        const v = row.values[i];
+        b.scale.setScalar((.5+v*.15)*.62);
+        w.add(b);
+        w.userData.val = v;
+        const lbl = makeTextSprite(String(v), { world:.4 });
+        lbl.position.y = 1.3 + v*.12;
+        w.add(lbl);
+        w.position.set(this.slotX(i), 0, zs[r]);
+        gameRoot.add(w); row.wrappers.push(w);
+      }
+      const nameSpr = makeTextSprite(names[r], { world:2.1, border:'#4aa3ff' });
+      nameSpr.position.set(-6.6, 1.1, zs[r]);
+      gameRoot.add(nameSpr);
+      this.rows.push(row);
+    }
+  }
+  /* ---- จำลองอัลกอริทึม (นับสถิติจริง ได้ขั้นตอนมาเล่นอนิเมชัน) ---- */
+  simBubble(a){
+    const arr = [...a]; const steps = []; let cmp=0, swp=0;
+    for(let end=arr.length-1; end>0; end--){
+      for(let i=0;i<end;i++){
+        steps.push({t:'cmp', i, j:i+1}); cmp++;
+        if(arr[i] > arr[i+1]){ steps.push({t:'swap', i, j:i+1}); swp++; [arr[i],arr[i+1]]=[arr[i+1],arr[i]]; }
+      }
+    }
+    return { steps, cmp, swp, sorted:arr };
+  }
+  simSelection(a){
+    const arr = [...a]; const steps = []; let cmp=0, swp=0;
+    for(let s=0;s<arr.length-1;s++){
+      let m = s;
+      for(let j=s+1;j<arr.length;j++){ steps.push({t:'scan', j}); cmp++; if(arr[j] < arr[m]) m = j; }
+      if(m !== s){ steps.push({t:'swap', i:s, j:m}); swp++; [arr[s],arr[m]]=[arr[m],arr[s]]; }
+    }
+    return { steps, cmp, swp, sorted:arr };
+  }
+  simInsertion(a){
+    const arr = [...a]; const steps = []; let cmp=0, shift=0;
+    for(let i=1;i<arr.length;i++){
+      const v = arr[i]; steps.push({t:'lift', i});
+      let k = i-1;
+      while(k >= 0){
+        steps.push({t:'cmp', i:k}); cmp++;
+        if(arr[k] > v){ steps.push({t:'shift', k}); shift++; arr[k+1] = arr[k]; k--; }
+        else break;
+      }
+      steps.push({t:'insert', p:k+1}); arr[k+1] = v;
+    }
+    return { steps, cmp, shift, sorted:arr };
+  }
+  /* ---- อนิเมชันต่อแถว ---- */
+  async swapRow(row, i, j){
+    AudioFX.tone(560,.06,'triangle',.08);
+    const wa = row.wrappers[i], wb = row.wrappers[j];
+    const ax = wa.position.x, bx = wb.position.x;
+    await Promise.all([
+      arcMove(wa, new THREE.Vector3(bx,0,row.z), { height:.7, dur:.28 }),
+      arcMove(wb, new THREE.Vector3(ax,0,row.z), { height:.35, dur:.28 }),
+    ]);
+    [row.wrappers[i],row.wrappers[j]] = [row.wrappers[j],row.wrappers[i]];
+  }
+  async playBubble(steps){
+    const row = this.rows[0];
+    for(const st of steps){
+      if(this.skip) return;
+      if(st.t === 'cmp'){
+        const wa = row.wrappers[st.i], wb = row.wrappers[st.j];
+        await Promise.all([
+          tween({dur:.15, update:e=>{ wa.position.y = e*.35; }}),
+          tween({dur:.15, update:e=>{ wb.position.y = e*.35; }}),
+        ]);
+        AudioFX.tone(640,.04,'sine',.05);
+        await Promise.all([
+          tween({dur:.13, update:e=>{ wa.position.y = .35*(1-e); }}),
+          tween({dur:.13, update:e=>{ wb.position.y = .35*(1-e); }}),
+        ]);
+      } else await this.swapRow(row, st.i, st.j);
+    }
+  }
+  async playSelection(steps){
+    const row = this.rows[1];
+    for(const st of steps){
+      if(this.skip) return;
+      if(st.t === 'scan'){
+        const w = row.wrappers[st.j];
+        await tween({ dur:.13, update:e=>{ w.position.y = Math.sin(e*Math.PI)*.3; } });
+        AudioFX.tone(600,.03,'sine',.045);
+      } else await this.swapRow(row, st.i, st.j);
+    }
+  }
+  async playInsertion(steps){
+    const row = this.rows[2];
+    let heldW = null; // track ตัว wrapper จริง — การเขียนทับ index ทำให้ถังที่ยกหายจากอาร์เรย์
+    for(const st of steps){
+      if(this.skip) return;
+      if(st.t === 'lift'){
+        heldW = row.wrappers[st.i];
+        await tween({ dur:.16, update:e=>{ heldW.position.y = e*.8; } });
+      } else if(st.t === 'cmp'){
+        AudioFX.tone(640,.04,'sine',.05);
+        const w = row.wrappers[st.i];
+        await tween({ dur:.12, update:e=>{ w.position.y = .3 + Math.sin(e*Math.PI)*.15; } });
+      } else if(st.t === 'shift'){
+        const w = row.wrappers[st.k];
+        await arcMove(w, new THREE.Vector3(this.slotX(st.k+1),0,row.z), { height:.3, dur:.16 });
+        row.wrappers[st.k+1] = w;
+      } else if(st.t === 'insert'){
+        await arcMove(heldW, new THREE.Vector3(this.slotX(st.p),0,row.z), { height:.4, dur:.2 });
+        row.wrappers[st.p] = heldW;
+        heldW = null;
+      }
+    }
+  }
+  /* จัดแถวกลับเป็นลำดับเรียง (ใช้ทั้งหลังเล่นอนิเมชันและตอนกดข้าม) */
+  settleRow(row, sortedVals){
+    const byVal = {};
+    row.wrappers.forEach(w=>{ byVal[w.userData.val] = w; });
+    row.wrappers = sortedVals.map(v=>byVal[v]);
+    row.wrappers.forEach((w,i)=>{ w.position.set(this.slotX(i), 0, row.z); });
+    row.values = [...sortedVals];
+    const done = makeTextSprite('✅', { world:.8, border:'#5ec26a' });
+    done.position.set(this.slotX(4)+1.5, 1, row.z);
+    gameRoot.add(done);
+  }
+  async run(){
+    if(this.running) return;
+    this.running = true;
+    const defs = [
+      { key:'rcB', sim:this.simBubble(this.values),     play:st=>this.playBubble(st),     fmt:s=>`เทียบ ${s.cmp} · สลับ ${s.swp}` },
+      { key:'rcS', sim:this.simSelection(this.values),  play:st=>this.playSelection(st),  fmt:s=>`เทียบ ${s.cmp} · สลับ ${s.swp}` },
+      { key:'rcI', sim:this.simInsertion(this.values),  play:st=>this.playInsertion(st),  fmt:s=>`เทียบ ${s.cmp} · เลื่อน ${s.shift}` },
+    ];
+    for(const d of defs){
+      if(this.skip){ await wait(120); }
+      else await d.play(d.sim.steps);
+      this.settleRow(this.rows[defs.indexOf(d)], d.sim.sorted);
+      $(d.key).textContent = d.fmt(d.sim);
+      await wait(300);
+    }
+    const [b,s,i2] = defs.map(d=>d.sim);
+    await wait(400);
+    // ใคร "ย้ายของ" น้อยสุดจริง ๆ (สลับหรือเลื่อน) — เฉลย dynamic ตามสถิติ
+    const movers = [ b.swp, s.swp, i2.shift ];
+    const minMove = Math.min(...movers);
+    const winner = ['Bubble','Selection','Insertion'][movers.indexOf(minMove)];
+    showWin(3,
+      `ชุดข้อมูลเดิม [${this.values.join(', ')}]<br>
+       🫧 Bubble — เทียบ <b>${b.cmp}</b> · สลับ <b>${b.swp}</b><br>
+       🎯 Selection — เทียบ <b>${s.cmp}</b> · สลับ <b>${s.swp}</b><br>
+       🃏 Insertion — เทียบ <b>${i2.cmp}</b> · เลื่อน <b>${i2.shift}</b><br>
+       🏆 ย้ายของน้อยสุด: <b>${winner}</b> (${minMove} ครั้ง)<br>
+       💡 ทั้งสามเทียบประมาณ n²/2 เท่ากัน แต่จำนวน "การย้ายของ" ต่างกันมาก — โจทย์ต่างกัน เลือกอัลกอริทึมต่างกัน!`,
+      `รอบนี้ ${winner} ย้ายของน้อยสุด! ลองกดเริ่มใหม่ — ข้อมูลสุ่มใหม่ เจ้าไหนจะชนะกันแล้ว 🏁`);
+  }
+}
+
+/* =========================================================================
    ลูปเรนเดอร์
    ========================================================================= */
 const clock = new THREE.Clock();
@@ -1352,7 +1909,7 @@ window.__algo = {
     return hits.slice(0,5).map(h=>{
       let o = h.object, pick = null;
       while(o){ if(o.userData.pick){ pick = o.userData.pick; break; } o = o.parent; }
-      const brief = pick ? { type: pick.type, peg: pick.peg, idx: pick.idx,
+      const brief = pick ? { type: pick.type, peg: pick.peg, idx: pick.idx, p: pick.p,
                               discSize: pick.disc ? pick.disc.size : undefined } : null;
       return { d: Math.round(h.distance*100)/100, pick: brief };
     });
