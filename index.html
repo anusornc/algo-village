@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>หมู่บ้านอัลกอริทึม — Algo Village</title>
 <link rel="icon" href="data:,">
+<!-- Social share preview (Facebook / X / LINE อ่าน tags เหล่านี้ตอนวางลิงก์) -->
+<link rel="canonical" href="https://anusornc.github.io/algo-village/">
+<meta name="description" content="เกม 3D ภาษาไทย สอนเด็กเรื่อง Algorithm & Data Structure ผ่าน 6 ภารกิจ: Bubble/Selection/Insertion Sort, Tower of Hanoi (Stack/Recursion), BFS shortest path — เล่นฟรีในเบราว์เซอร์">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anusornc.github.io/algo-village/">
+<meta property="og:title" content="🏡 หมู่บ้านอัลกอริทึม — เกม 3D สอนเด็กเรื่อง Algorithm">
+<meta property="og:description" content="เรียงถัง · หอคอยฮานอย · BFS เก็บเหรียญ · Selection/Insertion Sort · สนามแข่ง — เล่นฟรี 6 ภารกิจ ไม่ต้องลงทะเบียน">
+<meta property="og:image" content="https://anusornc.github.io/algo-village/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="th_TH">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="🏡 หมู่บ้านอัลกอริทึม — เกม 3D สอนเด็กเรื่อง Algorithm">
+<meta name="twitter:description" content="เรียงถัง · หอคอยฮานอย · BFS เก็บเหรียญ · Selection/Insertion Sort · สนามแข่ง — เล่นฟรี 6 ภารกิจ">
+<meta name="twitter:image" content="https://anusornc.github.io/algo-village/og-image.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -138,6 +153,19 @@
   #teacherNote summary{ cursor:pointer; font-weight:700; color:var(--ink); font-size:14px; }
   .credit{ text-align:center; margin-top:10px; font-size:12px; color:rgba(45,35,80,.65); font-weight:600; }
 
+  /* ---------- ปุ่มแชร์โซเชียล ---------- */
+  .shareRow{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .shareLabel{ font-size:13px; font-weight:700; color:#4a4468; }
+  .shareBtn{
+    width:40px; height:40px; border-radius:13px; border:2px solid #eee6ff; background:#fff;
+    cursor:pointer; font-size:17px; font-weight:800; box-shadow:0 3px 10px rgba(45,35,80,.12);
+    transition:transform .15s; display:inline-flex; align-items:center; justify-content:center;
+    font-family:inherit; color:#4a4468;
+  }
+  .shareBtn:hover{ transform:scale(1.14); }
+  .shareBtn.fb{ color:#1877f2; } .shareBtn.x{ color:#111; } .shareBtn.line{ color:#06c755; }
+  #winCard .shareRow{ margin-top:2px; margin-bottom:14px; }
+
   /* ---------- ผลลัพธ์ชนะ ---------- */
   #winCard{
     background:#fff; border-radius:30px; padding:30px 34px 26px; text-align:center;
@@ -216,6 +244,7 @@
       </p>
     </details>
     <div class="credit">สร้างด้วย Three.js + 3D assets จาก polyfork.dev</div>
+    <div class="shareRow" id="menuShareRow"><span class="shareLabel">แชร์เกมนี้:</span></div>
   </div>
 </div>
 
@@ -226,6 +255,7 @@
     <h2 id="winTitle">ภารกิจสำเร็จ!</h2>
     <div id="winStars"></div>
     <div id="winStats"></div>
+    <div class="shareRow" id="winShareRow"><span class="shareLabel">แชร์ความสำเร็จ:</span></div>
     <div class="row">
       <button class="btn btn-green" id="winAgain">🔄 เล่นอีกครั้ง</button>
       <button class="btn btn-blue" id="winNext">➡️ ภารกิจถัดไป</button>
@@ -509,6 +539,51 @@ function toast(msg, ms=2200){
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), ms);
 }
+
+/* ---------------- ปุ่มแชร์โซเชียล (Facebook / X / LINE / คัดลอกลิงก์) ---------------- */
+const SITE_URL = 'https://anusornc.github.io/algo-village/';
+const SITE_TEXT = '🏡 หมู่บ้านอัลกอริทึม — เกม 3D สอนเด็กเรื่อง Algorithm & Data Structure เล่นฟรีในเบราว์เซอร์!';
+function openShare(kind, text){
+  const u = encodeURIComponent(SITE_URL);
+  const t = encodeURIComponent(text + ' ' + SITE_URL);
+  const urls = {
+    fb:   `https://www.facebook.com/sharer/sharer.php?u=${u}`,
+    x:    `https://x.com/intent/post?text=${t}`,
+    line: `https://social-plugins.line.me/lineit/share?url=${u}`,
+  };
+  window.open(urls[kind], '_blank', 'width=620,height=540');
+}
+function renderShareRow(el, getText){
+  const defs = [
+    { k:'fb',   icon:'📘', title:'แชร์บน Facebook' },
+    { k:'x',    icon:'𝕏', title:'โพสบน X (Twitter)' },
+    { k:'line', icon:'💬', title:'แชร์บน LINE' },
+    { k:'copy', icon:'🔗', title:'คัดลอกลิงก์' },
+  ];
+  for(const b of defs){
+    const btn = document.createElement('button');
+    btn.className = 'shareBtn ' + b.k;
+    btn.title = b.title;
+    btn.textContent = b.icon;
+    btn.onclick = ()=>{
+      AudioFX.click();
+      if(b.k === 'copy'){
+        const done = ()=>toast('คัดลอกลิงก์แล้ว! วางในแชทหรือโพสได้เลย');
+        if(navigator.clipboard?.writeText){
+          navigator.clipboard.writeText(SITE_URL).then(done, ()=>toast('ลิงก์: ' + SITE_URL, 5000));
+        } else {
+          toast('ลิงก์: ' + SITE_URL, 5000);
+        }
+        return;
+      }
+      openShare(b.k, getText());
+    };
+    el.appendChild(btn);
+  }
+}
+renderShareRow($('menuShareRow'), ()=>SITE_TEXT);
+renderShareRow($('winShareRow'), ()=>
+  `🎉 ผ่านภารกิจ "${currentGame?.mission?.name ?? ''}" ${($('winStars')?.textContent ?? '').trim()} ในเกมสอนอัลกอริทึม 3D! มาลองดูสิ`);
 
 /* ---------------- คอนเฟตติ ---------------- */
 function confetti(){
